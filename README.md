@@ -33,9 +33,9 @@ qrs.AppCopy('a99babf2-3c9d-439d-99d2-66fa7276604e',"HELLO world")
 ```
 
 ## TODO
-The module is in progress, just a subset of method are implemented. But all the endpoints could be handled through the inner class “drv” and the methods get/post/put/delete.
+The module is in progress, just a subset of method are implemented. But all the endpoints could be handled through the inner class “driver” and the methods get|post|put|delete.
 ```sh
-self.driver.get('/qrs/about/api/enums').json()
+qps.driver.get('/qrs/about/api/enums').json()
 ```
 
 ## License
