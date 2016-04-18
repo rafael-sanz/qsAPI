@@ -52,13 +52,15 @@ class _Controller(object):
        
     _referer='python APIREST (QlikSense)' 
     
-    def __init__(self, proxy, port, vproxy, certificate, verify, verbosity):
+    def __init__(self, proxy, port, vproxy, certificate, verify, userDirectory, userID, verbosity):
         ''' 
             @Function setup: Setup the connection and initialize handlers
             @param proxy: hostname to connect
             @param port: port number
             @param certificate: path to .pem client certificate
             @param verify: false to trusth in self-signed certificates
+            @param userDirectory: user directory informed
+            @param userID: userID informed
             @param verbosity: debug level
         '''
         self.baseurl  = None
@@ -66,9 +68,9 @@ class _Controller(object):
         self.response = None
         self.session  = None
         self.verbose  = Verbose()
-        self.UserDirectory='Internal'
-        self.UserId = 'sa_repository'
+        self.setUser(userDirectory, userID)
           
+        self.chunk_size = 512 #Kb
         self.verbose.set(verbosity)
         
         self.baseurl= 'https://{host}:{port}'.format(host=proxy, port=str(port))
@@ -91,7 +93,12 @@ class _Controller(object):
                 
         self.session=req.Session()
         
-
+        
+        
+    def setUser(self, userDirectory, userID):
+        self.UserDirectory=userDirectory
+        self.UserId = userID
+        
         
     def _params_prepare(self, param, xhd={}):
                 
@@ -167,9 +174,7 @@ class _Controller(object):
 
     def download(self, apipath, filename, param=None):
         """ initialize control structure """
-        
-        chunk_size=512     
-                       
+                   
         if self.verbose.isInfo():
             print('\n API endpoint <{0}>'.format(apipath))
 
@@ -191,17 +196,17 @@ class _Controller(object):
                 
             with open(filename, 'wb') as f:
                 if self.verbose.isInfo():
-                    print('\tDOWN({0}Kb block): '.format(str(chunk_size)), end='',flush=True)
+                    print('\tDownloading (in {0}Kb blocks): '.format(str(self.chunk_size)), end='',flush=True)
                 
                 #download in 512Kb blocks
-                for chunk in self.request.iter_content(chunk_size=chunk_size*1024): 
+                for chunk in self.request.iter_content(chunk_size=self.chunk_size << 10): 
                     if chunk: # filter out keep-alive new chunks
                         f.write(chunk)
                         if self.verbose.isInfo():
                             print('.', end='',flush=True)
                             
                 if self.verbose.isInfo():
-                    print('Done.')
+                    print(' Done.')
                     print('\tSaved: {0}'.format(os.path.abspath(filename)))
                 
             
@@ -215,11 +220,34 @@ class _Controller(object):
         return(self.request.ok)
 
     
-    #TODO: crear un upload
+    
     def upload(self, apipath, filename, param=None):
         """ initialize control structure """
         
-        chunk_size=512     
+        class upload_in_chunks(object):
+            def __init__(self, filename, chunksize=512, verbose=True):
+                self.filename = filename
+                self.chunksize = chunksize << 10
+                self.totalsize = os.path.getsize(filename)
+                print('{sz}Kb '.format(sz=self.totalsize >> 10), end='',flush=True)
+                self.readsofar = 0
+                self.verbose= verbose
+        
+            def __iter__(self):
+                with open(self.filename, 'rb') as file:
+                    while True:
+                        data = file.read(self.chunksize)
+                        if not data:
+                            break
+                        self.readsofar += len(data)
+                        if self.verbose:
+                            print('.', end='',flush=True)
+                        yield data
+        
+            def __len__(self):
+                return self.totalsize
+        
+             
                        
         if self.verbose.isInfo():
             print('\n API endpoint <{0}>'.format(apipath))
@@ -238,16 +266,14 @@ class _Controller(object):
                 
         # Execute the HTTP request 
         try:
-            
-            with open(filename, 'rb') as f:
-                if self.verbose.isInfo():
-                    print('\tUP({0}Kb block): '.format(str(chunk_size)), end='',flush=True)
+            if self.verbose.isInfo():
+                print('\tUploading ', end='',flush=True)
                 
-                #upload
-                self.request = req.post(url, headers=hd, cert=self.cafile, verify=self._verify, data=f, stream=True)
+            #upload
+            self.request = req.post(url, headers=hd, cert=self.cafile, verify=self._verify, data=upload_in_chunks(filename, self.chunk_size))
                 
-                if self.verbose.isInfo():
-                    print('Done.')                
+            if self.verbose.isInfo():
+                print(' Done.', flush=True)                
             
         except ValueError as e:
             raise Exception('<Value error> {0}'.format(e))
@@ -316,9 +342,9 @@ class QPS(object):
     VERSION_API= Version('2.1.0')
     
     
-    def __init__(self, proxy='localhost', port=4243, vproxy='', certificate=None, verify=False, verbosity=Verbose.INFO):  
+    def __init__(self, proxy='localhost', port=4243, vproxy='', certificate=None, verify=False, userDirectory='internal', userID='sa_repository', verbosity=Verbose.INFO):  
         
-        self.driver=_Controller(proxy, port, vproxy, certificate, verify, verbosity)
+        self.driver=_Controller(proxy, port, vproxy, certificate, verify, userDirectory, userID, verbosity)
 
 
 
@@ -355,9 +381,9 @@ class QRS(object):
     VERSION_API= Version('2.1.0')
     
     
-    def __init__(self, proxy='localhost', port=4242, vproxy='', certificate=None, verify=False, verbosity=Verbose.INFO):
+    def __init__(self, proxy='localhost', port=4242, vproxy='', certificate=None, verify=False, userDirectory='internal', userID='sa_repository', verbosity=Verbose.INFO):
         
-        self.driver=_Controller(proxy, port, vproxy, certificate, verify, verbosity)
+        self.driver=_Controller(proxy, port, vproxy, certificate, verify, userDirectory, userID, verbosity)
         self.VERSION_SERVER=self.getServerVersion()
         if self.VERSION_API > self.VERSION_SERVER:
             raise Exception('<server version mismatch, API:{0} > Server:{1}'.format(self.VERSION_API, self.VERSION_SERVER))
@@ -429,7 +455,7 @@ class QRS(object):
 
     
     
-    def AppDictAttributes(self, guid=None, key='id', attr='name'):
+    def AppDictAttributes(self, guid=None, key='name', attr='id'):
         '''@Function: retrieve a mapping of apps attributes
            @param pId: limmit the scope to the App {GUID}
            @param key: the attribute to be the key
@@ -508,11 +534,11 @@ if __name__ == "__main__":
     
     from pprint import pprint
     
-    e=QRS(proxy='52.29.108.33', verbosity=Verbose.DEBUG, certificate='C:\\Users\\Test\\workspace\\QSenseAPI\\ec2\\client.pem')
-    e.ping()
+    qrs=QRS(proxy='TESTW7-S', verbosity=Verbose.DEBUG, certificate='C:\\Users\\Test\\workspace\\QSenseAPI\\certificates\\testw7-s\\client.pem')
+    qrs.ping()
     
-    pprint(e.AppDict())
-    pprint([e.count(x) for x in ('app','user','stream','dataconnection')])
+    pprint(qrs.AppDictAttributes())
+    pprint([qrs.count(x) for x in ('app','user','stream','dataconnection')])
 
 
     
