@@ -23,10 +23,19 @@ The first step is to build a handler invoking the constructor of the class you w
 ```sh
 qrs.count('user',"Name eq 'sa_repository'")
 ```
-#### Copy and application
+#### Copy an application
 ```sh
 qrs.AppCopy('a99babf2-3c9d-439d-99d2-66fa7276604e',"HELLO world")
 ```
+#### Export an application
+```sh
+qrs.AppExport('a99babf2-3c9d-439d-99d2-66fa7276604e',"myAppName.qvf")
+```
+#### Retrieve security rules using a filter
+```sh
+qrs.SystemRules("type eq 'Custom'")
+```
+
 #### Retrieve a list of sessions for a user
 ```sh
 [x['SessionId'] for x in qps.GetUser('DIR', 'name').json()]
