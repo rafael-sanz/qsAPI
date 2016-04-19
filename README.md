@@ -41,6 +41,10 @@ qrs.SystemRules("type eq 'Custom'")
 ```sh
 [x['SessionId'] for x in qps.GetUser('DIR', 'name').json()]
 ```
+#### teardown of all connections for the user and related sessions
+```sh
+qps.DeleteUser('DIR','name')
+```
 
 ## TODO
 The module is in progress, just a subset of method are implemented. But all the endpoints could be handled through the inner class “driver” and the methods get/post/put/delete.
