@@ -455,7 +455,7 @@ class QRS(object):
 
     
     
-    def AppDictAttributes(self, guid=None, key='name', attr='id'):
+    def AppDictAttributes(self, guid='full', key='name', attr='id'):
         '''@Function: retrieve a mapping of apps attributes
            @param pId: limmit the scope to the App {GUID}
            @param key: the attribute to be the key
@@ -463,13 +463,13 @@ class QRS(object):
            @return: dict(key:attr)
         '''
         
-        apipath=urljoin('/qrs/app/', guid) if guid else '/qrs/app/full'
+        apipath='/qrs/app/{guid}'.format(guid=guid)
             
         s=self.driver.get(apipath)
         r={}
         if s.ok:
             j=s.json()
-            if guid:
+            if guid != "full":
                 r[j.get(key)]=j.get(attr)
             else:
                 for x in j:
@@ -506,7 +506,6 @@ class QRS(object):
     
     
     
-    #TODO: VERIFICAR
     #TODO: cambios con 2.2
     def AppUpload(self, filename, name):
         '''
@@ -517,7 +516,32 @@ class QRS(object):
         param ={'name':name}
         return(self.driver.upload('/qrs/app/upload', filename, param))
     
-        def UserGet(self, pUserID='full', pFilter=None):
+    
+    
+    def UserDictAttributes(self, pUserID='full', key='name', attr='id'):
+        '''@Function: retrieve a mapping of user attributes
+           @param pUserID: limmit the scope to the User {UID}
+           @param key: the attribute to be the key
+           @param attr: the attribute value to retrieve
+           @return: dict(key:attr)
+        '''
+        
+        apipath='/qrs/user/{uid}'.format(uid=pUserID)
+            
+        s=self.driver.get(apipath)
+        r={}
+        if s.ok:
+            j=s.json()
+            if pUserID != "full":
+                r[j.get(key)]=j.get(attr)
+            else:
+                for x in j:
+                    r[x.get(key)]=x.get(attr)
+        
+        return(r)
+    
+    
+    def UserGet(self, pUserID='full', pFilter=None):
         '''
         @Function UserGet: retrieve user information
         @param pUserID: User id 
@@ -535,13 +559,14 @@ class QRS(object):
         @return : json response
         '''
         return self.driver.delete('/qrs/user/{id}'.format(id=pUserID))
+    
 
     #TODO: VERIFICAR    
     def SystemRules(self, pFilter=None):
         '''
         @Function: Get the system rules
         '''
-        return(self.driver.driver.get('/qrs/systemrule/full', {'filter':pFilter}))
+        return(self.driver.get('/qrs/systemrule/full', {'filter':pFilter}))
     
 
 
