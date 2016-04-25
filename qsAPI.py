@@ -517,7 +517,24 @@ class QRS(object):
         param ={'name':name}
         return(self.driver.upload('/qrs/app/upload', filename, param))
     
+        def UserGet(self, pUserID='full', pFilter=None):
+        '''
+        @Function UserGet: retrieve user information
+        @param pUserID: User id 
+        @param pFilter: filter the entities before calculating the number of entities. 
+        @return : json response
+        '''
+        return self.driver.get('/qrs/user/{id}'.format(id=pUserID), param={'filter':pFilter}).json()
     
+    
+    def UserDelete(self, pUserID):
+        '''
+        @Function UserGet: retrieve user information
+        @param pUserID: User id 
+        @param pFilter: filter the entities before calculating the number of entities. 
+        @return : json response
+        '''
+        return self.driver.delete('/qrs/user/{id}'.format(id=pUserID))
 
     #TODO: VERIFICAR    
     def SystemRules(self, pFilter=None):
