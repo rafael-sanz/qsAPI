@@ -15,6 +15,8 @@ The module can be used importing qsAPI.py at the beginning of your python script
 
 ![IDE screenshot](https://raw.githubusercontent.com/rafael-sanz/qsAPI/master/qsAPI.png)
 
+![console screenshot](https://raw.githubusercontent.com/rafael-sanz/qsAPI/master/qsAPI_console.png)
+
 
 ## Usage
 ### Connecting with certificates
