@@ -6,7 +6,7 @@ import sys, os.path
 from distutils.version import LooseVersion as Version
 import requests as req
 from urllib.parse import urlencode, urljoin
-import random, string
+import random, string, json
 
 
 class Verbose(object):
@@ -318,20 +318,19 @@ class _Controller(object):
         @param param : whatever other param needed in form a dict
                       (example: {'filter': "name eq 'myApp'} )
         @param data : stream data input
-        @param files : metafile input
         '''
         return self.call('PUT', apipath, param, data)
     
     
     
-    def delete(self, apipath, **params):
+    def delete(self, apipath, param=None):
         '''
         @Function delete: generic purpose call
         @param apipath: uri REST path
         @param param : whatever other param needed in form a dict
                       (example: {'filter': "name eq 'myApp'} )
         '''
-        return self.call('DELETE', apipath, **params)
+        return self.call('DELETE', apipath, param)
 
     
     
@@ -505,6 +504,13 @@ class QRS(object):
         return(r)
     
     
+    def AppMigrate(self, pId):
+        '''
+        @Function: Migrate an app so that it can be used in the currently installed version of Qlik Sense. Normally, this is done automatically
+        @param pId: app identifier
+        '''
+        return self.driver.put('/qrs/app/{id}/migrate'.format(id=pId))
+    
     
     #TODO: cambios con 2.2
     def AppUpload(self, filename, name):
@@ -514,10 +520,10 @@ class QRS(object):
         @param name: target app name
         '''
         param ={'name':name}
-        return(self.driver.upload('/qrs/app/upload', filename, param))
+        return self.driver.upload('/qrs/app/upload', filename, param)
     
     
-    
+    #TODO: generalizar, es lo mismo que AppDict
     def UserDictAttributes(self, pUserID='full', key='name', attr='id'):
         '''@Function: retrieve a mapping of user attributes
            @param pUserID: limmit the scope to the User {UID}
@@ -551,22 +557,36 @@ class QRS(object):
         return self.driver.get('/qrs/user/{id}'.format(id=pUserID), param={'filter':pFilter}).json()
     
     
+    def UserUpdate(self, pUserID, pData):
+        '''
+        @Function UserUpdate: update user information
+        @param pUserID: User id 
+        @param pData: json with user information. 
+        @return : response status
+        '''
+        if isinstance(pData,dict):
+            pData=json.dumps(pData)
+        return self.driver.put('/qrs/user/{id}'.format(id=pUserID), data=pData)
+    
+    
     def UserDelete(self, pUserID):
         '''
         @Function UserGet: retrieve user information
         @param pUserID: User id 
         @param pFilter: filter the entities before calculating the number of entities. 
-        @return : json response
+        @return : response status
         '''
         return self.driver.delete('/qrs/user/{id}'.format(id=pUserID))
     
 
-    #TODO: VERIFICAR    
+    #TODO: Complete methods    
     def SystemRules(self, pFilter=None):
         '''
         @Function: Get the system rules
         '''
-        return(self.driver.get('/qrs/systemrule/full', {'filter':pFilter}))
+        return self.driver.get('/qrs/systemrule/full', {'filter':pFilter}).json()
+    
+    #TODO: Properties methods
     
 
 
