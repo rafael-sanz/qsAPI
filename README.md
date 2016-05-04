@@ -53,6 +53,10 @@ qrs.SystemRules("type eq 'Custom'")
 qps.DeleteUser('DIR','name')
 ```
 
+##### More examples
+Take a look at the Wiki area: (https://github.com/rafael-sanz/qsAPI/wiki)
+
+
 ## TODO
 The module is in progress, just a subset of method are implemented. But all the endpoints could be handled through the inner class “driver” and the methods `get, post, put, delete`.
 ```python
