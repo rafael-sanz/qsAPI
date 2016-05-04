@@ -5,7 +5,7 @@
 import sys, os.path
 from distutils.version import LooseVersion as Version
 import requests as req
-from urllib.parse import urlencode, urljoin
+from urllib.parse import urlencode
 import random, string, json
 
 
@@ -307,6 +307,8 @@ class _Controller(object):
         @param data : stream data input
         @param files : metafile input 
         '''
+        if isinstance(data,dict) or isinstance(data,list):
+            data=json.dumps(data)
         return self.call('POST', apipath, param, data, files)
     
     
@@ -317,8 +319,10 @@ class _Controller(object):
         @param apipath: uri REST path
         @param param : whatever other param needed in form a dict
                       (example: {'filter': "name eq 'myApp'} )
-        @param data : stream data input
+        @param data : stream data input (native dict are json formated)
         '''
+        if isinstance(data,dict) or isinstance(data,list):
+            data=json.dumps(data)
         return self.call('PUT', apipath, param, data)
     
     
@@ -564,8 +568,7 @@ class QRS(object):
         @param pData: json with user information. 
         @return : json response
         '''
-        if isinstance(pData,dict):
-            pData=json.dumps(pData)
+        
         return self.driver.put('/qrs/user/{id}'.format(id=pUserID), data=pData)
     
     
