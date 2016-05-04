@@ -562,7 +562,7 @@ class QRS(object):
         @Function UserUpdate: update user information
         @param pUserID: User id 
         @param pData: json with user information. 
-        @return : response status
+        @return : json response
         '''
         if isinstance(pData,dict):
             pData=json.dumps(pData)
@@ -574,20 +574,27 @@ class QRS(object):
         @Function UserGet: retrieve user information
         @param pUserID: User id 
         @param pFilter: filter the entities before calculating the number of entities. 
-        @return : response status
+        @return : json response
         '''
         return self.driver.delete('/qrs/user/{id}'.format(id=pUserID))
     
 
-    #TODO: Complete methods    
+
+    #TODO: Complete Rules methods    
     def SystemRules(self, pFilter=None):
         '''
         @Function: Get the system rules
         '''
         return self.driver.get('/qrs/systemrule/full', {'filter':pFilter}).json()
     
-    #TODO: Properties methods
     
+    
+    #TODO: Complete Properties methods
+    def PropertiesGet(self, pFilter=None):
+        '''
+        @Function: Get the system rules
+        '''
+        return self.driver.get('/qrs/custompropertydefinition/full', {'filter':pFilter}).json()
 
 
 
