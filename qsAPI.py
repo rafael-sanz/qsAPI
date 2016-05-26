@@ -357,6 +357,7 @@ class QPS(object):
         '''
         apipath='/qps/{virtual_proxy}user/{directory}/{id}'.format(virtual_proxy=self.driver.preffix, directory=directory, id=user)
         return self.driver.get(apipath)
+
     
     
     def DeleteUser(self, directory, user):
@@ -367,6 +368,7 @@ class QPS(object):
         apipath='/qps/{virtual_proxy}user/{directory}/{id}'.format(virtual_proxy=self.driver.preffix, directory=directory, id=user)
         return self.driver.delete(apipath)
     
+
     
     def GetSession(self, pId):
         '''
@@ -374,6 +376,14 @@ class QPS(object):
         '''
         apipath='/qps/{virtual_proxy}session/{id}'.format(virtual_proxy=self.driver.preffix, id=pId)
         return self.driver.get(apipath)
+    
+    
+    def DeleteSession(self, pId):
+        '''
+        @Function: Delete the proxy session identified by {id}.
+        '''
+        apipath='/qps/{virtual_proxy}session/{id}'.format(virtual_proxy=self.driver.preffix, id=pId)
+        return self.driver.delete(apipath)
 
 
 
@@ -416,7 +426,7 @@ class QRS(object):
     
     def getAbout(self):
         '''
-        @Function getAbout: Get information on the Qlik Sense repository, including version, database provider, and whether the node is the central node of the site or not.
+        @Function: Get information on the Qlik Sense repository, including version, database provider, and whether the node is the central node of the site or not.
         '''
         return self.driver.get('/qrs/about')
     
@@ -424,7 +434,7 @@ class QRS(object):
     
     def count(self, pType, pFilter=None):
         '''
-        @Function count: generic purpose call
+        @Function: generic purpose call
         @param pType: entity to count
         @param pFilter: filter the entities before calculating the number of entities. 
         @return : integer from json response
@@ -434,7 +444,7 @@ class QRS(object):
     
     
     def getDescription(self, extended='False', method=None, outformat='JSON'):
-        '''@Function getDescription: List all paths available in the Qlik Sense Repository Service (QRS) API. Optionally, return extended information, endpoints that use a specific HTTP verb, or the return values in JSON format.
+        '''@Function : List all paths available in the Qlik Sense Repository Service (QRS) API. Optionally, return extended information, endpoints that use a specific HTTP verb, or the return values in JSON format.
            @param extended: If true, returns the following:
                 The type (if any) that needs to be included in the body.
                 The type of return value (if any).
@@ -452,7 +462,7 @@ class QRS(object):
 
 
     def getEnum(self):
-        '''@Function getEnum: Get all enums that are used by the public part of the Qlik Sense Repository Service (QRS) API.
+        '''@Function: Get all enums that are used by the public part of the Qlik Sense Repository Service (QRS) API.
         '''
         return self.driver.get('/qrs/about/api/enums').json()
 
@@ -508,6 +518,18 @@ class QRS(object):
         return(r)
     
     
+    
+    def AppGet(self, pId='full', pFilter=None):
+        '''
+        @Function: retrieve App information
+        @param pId: App GUI 
+        @param pFilter: filter the entities before calculating the number of entities. 
+        @return : json response
+        '''
+        return self.driver.get('/qrs/app/{id}'.format(id=pId), param={'filter':pFilter}).json()
+    
+    
+    
     def AppMigrate(self, pId):
         '''
         @Function: Migrate an app so that it can be used in the currently installed version of Qlik Sense. Normally, this is done automatically
@@ -525,6 +547,7 @@ class QRS(object):
         '''
         param ={'name':name}
         return self.driver.upload('/qrs/app/upload', filename, param)
+    
     
     
     #TODO: generalizar, es lo mismo que AppDict
@@ -553,7 +576,7 @@ class QRS(object):
     
     def UserGet(self, pUserID='full', pFilter=None):
         '''
-        @Function UserGet: retrieve user information
+        @Function: retrieve user information
         @param pUserID: User id 
         @param pFilter: filter the entities before calculating the number of entities. 
         @return : json response
@@ -563,7 +586,7 @@ class QRS(object):
     
     def UserUpdate(self, pUserID, pData):
         '''
-        @Function UserUpdate: update user information
+        @Function: update user information
         @param pUserID: User id 
         @param pData: json with user information. 
         @return : json response
@@ -574,7 +597,7 @@ class QRS(object):
     
     def UserDelete(self, pUserID):
         '''
-        @Function UserGet: retrieve user information
+        @Function: retrieve user information
         @param pUserID: User id 
         @param pFilter: filter the entities before calculating the number of entities. 
         @return : json response
@@ -583,21 +606,23 @@ class QRS(object):
     
 
 
-    #TODO: Complete Rules methods    
+   
     def SystemRules(self, pFilter=None):
         '''
         @Function: Get the system rules
         '''
         return self.driver.get('/qrs/systemrule/full', {'filter':pFilter}).json()
+        #TODO: Complete Rules methods    
     
     
     
-    #TODO: Complete Properties methods
+    
     def PropertiesGet(self, pFilter=None):
         '''
         @Function: Get the system rules
         '''
         return self.driver.get('/qrs/custompropertydefinition/full', {'filter':pFilter}).json()
+        #TODO: Complete Properties methods
 
 
 
