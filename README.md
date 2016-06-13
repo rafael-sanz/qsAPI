@@ -39,6 +39,14 @@ qrs.AppCopy('a99babf2-3c9d-439d-99d2-66fa7276604e',"HELLO world")
 ```python
 qrs.AppExport('a99babf2-3c9d-439d-99d2-66fa7276604e',"c:\\path\\myAppName.qvf")
 ```
+
+#### Export all published applications to directories
+```python
+for app in qrs.AppGet(pFilter="stream.name ne 'None'"):
+	os.makedirs(app['stream']['name'], exist_ok=True)
+	qrs.AppExport(app['id'], app['stream']['name']+'\\'+app['name'])
+```
+
 #### Retrieve security rules using a filter
 ```python
 qrs.SystemRules("type eq 'Custom'")
