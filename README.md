@@ -2,7 +2,7 @@
 qsAPI is a client for Qlik Sense QPS and QRS interfaces written in python that provides an environment for managing a Qlik Sense site via programming or interactive console. The module provides a set of commands for viewing and editing configuration settings, as well as managing tasks and other features available through APIs.
 
 ## Installation
-You could use your preferred IDE (Eclipse, Visual Studio, NetBeans, …) with the python interpreter 3.x. Take a look at (http://www.activestate.com/activepython) or (https://www.python.org). Once the module is loaded you can view a list of available commands with the autocomplete tooltips.
+You could use your preferred IDE (Eclipse, Visual Studio, NetBeans, …) with the python interpreter 3.x or directly in console. Take a look at (http://www.activestate.com/activepython) or (https://www.python.org). Once the module is loaded you can view a list of available commands with the autocomplete tooltips.
 
 The python “requests” library is a requisite (http://docs.python-requests.org/en/master/user/install/). Just execute in the command line:
 ```python
