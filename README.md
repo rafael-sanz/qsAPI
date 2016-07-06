@@ -16,7 +16,7 @@ The module can be used importing qsAPI.py at the beginning of your python script
 ![IDE screenshot](https://raw.githubusercontent.com/rafael-sanz/qsAPI/master/qsAPI.png)
 
 
-Or just a simple interactive console command line if complex scripts are no needed: 
+Or just a simple command line console if complex scripts are no needed: 
 ![console screenshot](https://raw.githubusercontent.com/rafael-sanz/qsAPI/master/qsAPI_console.png)
 
 
