@@ -22,7 +22,7 @@ Or just a simple interactive console command line if complex scripts are no need
 
 ## Usage
 ### Connecting with certificates
-The first step is to build a handler invoking the constructor of the class you will use containing the host parameters, this will attempt to connect to the Qlik Sense server.
+The first step is to build a handler invoking the constructor of the class you will use containing the host parameters, this will attempt to connect to the Qlik Sense server. Just export from console the QlikSense certificate in portable format:
 ```python
 >>> qrs=qsAPI.QRS(proxy=’hostname', certificate='path\\client.pem')
 ```
