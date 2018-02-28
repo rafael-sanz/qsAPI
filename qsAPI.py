@@ -25,7 +25,7 @@ import sys, os.path
 from distutils.version import LooseVersion as Version
 import requests as req
 from urllib.parse import urlencode
-import random, string, json
+import random, string, json, uuid
 
 
 class Verbose(object):
@@ -520,23 +520,25 @@ class QRS(object):
         param={'name':name}
         return self.driver.post('/qrs/app/{id}/copy'.format(id=pId), param).json()
 
+
     
-    
-    
-    def AppExport(self, pId, filename=None):
+    def AppExport(self, pId, filename):
         '''
         @Function: Get an export qvf for an existing app, identified by {id}.
         @param pId: app GUI
         @param filename: target path filename
+        @return : stored application
         '''
         
-        r=self.driver.get('/qrs/app/{id}/export'.format(id=pId))
+        pUUID = uuid.uuid4()
+
+        r=self.driver.post('/qrs/app/{id}/export/{token}'.format(id=pId, token=pUUID))
         if r.ok:
-            file= (filename.rstrip('.qvf') if filename else pId)+'.qvf'
-            r=self.driver.download('/qrs/download/app/{appId}/{TicketId}/{fileName}'.format(appId=pId, TicketId=r.json()['value'], fileName=file), file)
-        return(r)
-    
-    
+            app=self.driver.get(r.json()['downloadPath']).content
+            with open(filename,'wb') as qvf:
+                return qvf.write(app)
+
+
     
     def AppGet(self, pId='full', pFilter=None):
         '''
