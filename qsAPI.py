@@ -575,6 +575,16 @@ class QRS(object):
         '''
         return self.driver.post('/qrs/app/{id}/reload'.format(id=pId))
 
+
+    def AppPublish(self, pId, stream=None):
+        '''
+        @Function: Publish an app to a stream
+        @param pId: app identifier
+        @param stream: stream identifier
+        '''
+        param={'stream':stream}
+        return self.driver.put('/qrs/app/{id}/publish'.format(id=pId), param).json()
+
     
     def StreamGet(self, pId='full', pFilter=None):
         '''
