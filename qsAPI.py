@@ -163,7 +163,12 @@ class _Controller(object):
         
         # Build the request        
         self.response= None
-        url='{0}/{1}?{2}'.format(self.baseurl, apipath.lstrip('/'), urlencode(par))
+        url='{0}/{1}{2}{3}'.format(
+            self.baseurl,
+            apipath.lstrip('/'),
+            '?'  if '?' not in apipath.lstrip('/')  else '&',
+            urlencode(par)
+            )
         self.request=req.Request(method, url, headers=hd, data=data, files=files)
         pr=self.request.prepare()
                 
@@ -559,15 +564,17 @@ class QRS(object):
         return self.driver.put('/qrs/app/{id}/migrate'.format(id=pId))
     
     
-    #TODO: cambios con 2.2
-    def AppUpload(self, filename, name):
+    def AppUpload(self, filename, pName):
         '''
         @Function: Upload a filename.qvf into Central Node.
         @param filename: target path filename
-        @param name: target app name
+        @param pName: target app name
+        @return : json response
         '''
-        param ={'name':name}
-        return self.driver.upload('/qrs/app/upload', filename, param)
+        file_type = '' # passing empty file to get correct ContentType in header
+        with open(filename,'rb') as qvf:
+            return self.driver.post('/qrs/app/upload?name={name}'.format(name=pName), files=file_type, data=qvf)
+        
 
     
     def AppReload(self, pId):
