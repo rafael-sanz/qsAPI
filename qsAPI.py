@@ -566,6 +566,15 @@ class QRS(object):
         '''
         param ={'name':name}
         return self.driver.upload('/qrs/app/upload', filename, param)
+
+    
+    def AppReload(self, pId):
+        '''
+        @Function: Reload an app
+        @param pId: app identifier
+        '''
+        return self.driver.post('/qrs/app/{id}/reload'.format(id=pId))
+
     
     def StreamGet(self, pId='full', pFilter=None):
         '''
