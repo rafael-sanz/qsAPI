@@ -4,12 +4,16 @@
 @author:     Rafael Sanz
 @contact:    rafael.sanz@selab.es
 @Copyright 2016 <Rafael Sanz - (R)SELAB>
+
 This software is MIT licensed (see terms below)
+
     Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation
     files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy,
     modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the 
     Software is furnished to do so, subject to the following conditions:
+
     The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
     OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
     LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR 
@@ -563,7 +567,14 @@ class QRS(object):
         param ={'name':name}
         return self.driver.upload('/qrs/app/upload', filename, param)
     
-    
+    def StreamGet(self, pId='full', pFilter=None):
+        '''
+        @Function: retrieve Stream information
+        @param pId: Stream GUI 
+        @param pFilter: filter the entities before calculating the number of entities. 
+        @return : json response
+        '''
+        return self.driver.get('/qrs/stream/{id}'.format(id=pId), param={'filter':pFilter}).json()
     
     #TODO: generalizar, es lo mismo que AppDict
     def UserDictAttributes(self, pUserID='full', key='name', attr='id'):
@@ -652,3 +663,5 @@ if __name__ == "__main__":
     pprint(qrs.AppDictAttributes())
     pprint([qrs.count(x) for x in ('app','user','stream','dataconnection')])
 
+
+    
