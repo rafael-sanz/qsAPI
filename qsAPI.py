@@ -594,6 +594,14 @@ class QRS(object):
         param={'stream':stream}
         return self.driver.put('/qrs/app/{id}/publish'.format(id=pId), param).json()
 
+    def AppReplace(self, pId, rId):
+        '''
+        @Function: Replace an app, identified by {rId}, with the app identified by {pId}.
+        @param pId: identifier of app to be published
+        @param rId: identifier of app to be replaced
+        '''
+        return self.driver.put('/qrs/app/{id}/replace?app={appid}'.format(id=pId, appid=rId))
+
     
     def StreamGet(self, pId='full', pFilter=None):
         '''
