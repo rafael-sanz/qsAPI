@@ -1,0 +1,15 @@
+Change Log, updated 01/03/2018
+
+v1.1 - Merged fixed from Marcin Gamza (@gammar7) 
+
+•	Fixed Invalid header name error
+•	Added StreamGet method
+•	Added AppReload method
+•	Added AppPublish method
+•	Fixed AppExport method according to February 2018 API
+•	Fixed AppUpload method according to February 2018 API
+•	Adding AppReplace method
+•	Added AppDelete method
+
+
+v1.0 - Initial Release
