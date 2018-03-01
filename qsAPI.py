@@ -25,7 +25,7 @@ import sys, os.path
 from distutils.version import LooseVersion as Version
 import requests as req
 from urllib.parse import urlencode
-import random, string, json
+import random, string, json, uuid
 
 
 class Verbose(object):
@@ -140,7 +140,7 @@ class _Controller(object):
         hd= { 'User-agent': self._referer,
               'Pragma': 'no-cache',
               'X-Qlik-User': 'UserDirectory={directory}; UserId={user}'.format(directory=self.UserDirectory, user=self.UserId),
-              'X-Qlik-Virtual-Proxy-Prefix:': self.vproxy,
+              'X-Qlik-Virtual-Proxy-Prefix': self.vproxy,
               'x-Qlik-Xrfkey': par.get('Xrfkey'),
               'Accept': 'application/json',
               'Content-Type': 'application/json'}
@@ -163,7 +163,12 @@ class _Controller(object):
         
         # Build the request        
         self.response= None
-        url='{0}/{1}?{2}'.format(self.baseurl, apipath.lstrip('/'), urlencode(par))
+        url='{0}/{1}{2}{3}'.format(
+            self.baseurl,
+            apipath.lstrip('/'),
+            '?'  if '?' not in apipath.lstrip('/')  else '&',
+            urlencode(par)
+            )
         self.request=req.Request(method, url, headers=hd, data=data, files=files)
         pr=self.request.prepare()
                 
@@ -520,23 +525,25 @@ class QRS(object):
         param={'name':name}
         return self.driver.post('/qrs/app/{id}/copy'.format(id=pId), param).json()
 
+
     
-    
-    
-    def AppExport(self, pId, filename=None):
+    def AppExport(self, pId, filename):
         '''
         @Function: Get an export qvf for an existing app, identified by {id}.
         @param pId: app GUI
         @param filename: target path filename
+        @return : stored application
         '''
         
-        r=self.driver.get('/qrs/app/{id}/export'.format(id=pId))
+        pUUID = uuid.uuid4()
+
+        r=self.driver.post('/qrs/app/{id}/export/{token}'.format(id=pId, token=pUUID))
         if r.ok:
-            file= (filename.rstrip('.qvf') if filename else pId)+'.qvf'
-            r=self.driver.download('/qrs/download/app/{appId}/{TicketId}/{fileName}'.format(appId=pId, TicketId=r.json()['value'], fileName=file), file)
-        return(r)
-    
-    
+            app=self.driver.get(r.json()['downloadPath']).content
+            with open(filename,'wb') as qvf:
+                return qvf.write(app)
+
+
     
     def AppGet(self, pId='full', pFilter=None):
         '''
@@ -557,17 +564,65 @@ class QRS(object):
         return self.driver.put('/qrs/app/{id}/migrate'.format(id=pId))
     
     
-    #TODO: cambios con 2.2
-    def AppUpload(self, filename, name):
+    def AppUpload(self, filename, pName):
         '''
         @Function: Upload a filename.qvf into Central Node.
         @param filename: target path filename
-        @param name: target app name
+        @param pName: target app name
+        @return : json response
         '''
-        param ={'name':name}
-        return self.driver.upload('/qrs/app/upload', filename, param)
+        file_type = '' # passing empty file to get correct ContentType in header
+        with open(filename,'rb') as qvf:
+            return self.driver.post('/qrs/app/upload?name={name}'.format(name=pName), files=file_type, data=qvf)
+        
+
     
+    def AppReload(self, pId):
+        '''
+        @Function: Reload an app
+        @param pId: app identifier
+        '''
+        return self.driver.post('/qrs/app/{id}/reload'.format(id=pId))
+
+
+    def AppPublish(self, pId, stream=None):
+        '''
+        @Function: Publish an app to a stream
+        @param pId: app identifier
+        @param stream: stream identifier
+        '''
+        param={'stream':stream}
+        return self.driver.put('/qrs/app/{id}/publish'.format(id=pId), param).json()
+
+
+
+    def AppReplace(self, pId, rId):
+        '''
+        @Function: Replace an app, identified by {rId}, with the app identified by {pId}.
+        @param pId: identifier of app to be published
+        @param rId: identifier of app to be replaced
+        '''
+        return self.driver.put('/qrs/app/{id}/replace?app={appid}'.format(id=pId, appid=rId))
+
+
+
+    def AppDelete(self, pId):
+        '''
+        @Function: Delete an app
+        @param pId: app identifier
+        '''
+        
+        return self.driver.delete('/qrs/app/{id}/delete'.format(id=pId))
+
     
+    def StreamGet(self, pId='full', pFilter=None):
+        '''
+        @Function: retrieve Stream information
+        @param pId: Stream GUI 
+        @param pFilter: filter the entities before calculating the number of entities. 
+        @return : json response
+        '''
+        return self.driver.get('/qrs/stream/{id}'.format(id=pId), param={'filter':pFilter}).json()
     
     #TODO: generalizar, es lo mismo que AppDict
     def UserDictAttributes(self, pUserID='full', key='name', attr='id'):
