@@ -26,52 +26,19 @@ from distutils.version import LooseVersion as Version
 import requests as req
 from urllib.parse import urlencode
 import random, string, json, uuid
+import logging
 
+__version__ = "1.2"
+__updated__ = '01/03/2018'
 
-class Verbose(object):
-        ''' Verbosity enumeration '''
-        (MINIMAL, API, INFO, DEBUG)=_levels=range(4)
-        
-        
-        def __init__(self, value=None):
-            if not self.set(value):
-                self.verbosity=self.MINIMAL
-                
-        def set(self, value):
-            if value:
-                val=int(value)
-                if val in self._levels:
-                    self.verbosity=val
-                    if val < self.DEBUG:
-                        sys.tracebacklimit = 0
-                    return True
-            return False
-        
-        def get(self):
-            return self.verbosity
-        
-        def isMinimal(self):
-            return self.verbosity >= self.MINIMAL
-        
-        def isApi(self):
-            return self.verbosity >= self.API
-        
-        def isInfo(self):
-            return self.verbosity >= self.INFO
-        
-        def isDebug(self):
-            return self.verbosity >= self.DEBUG
-
-
-    
 
 
 class _Controller(object):
     """ Handler REST-API QRS"""
        
-    _referer='python APIREST (QlikSense)' 
+    _referer='qsAPI APIREST (QSense)' 
     
-    def __init__(self, proxy, port, vproxy, certificate, verify, userDirectory, userID, verbosity):
+    def __init__(self, proxy, port, vproxy, certificate, verify, userDirectory, userID, verbosity, logName):
         ''' 
             @Function setup: Setup the connection and initialize handlers
             @param proxy: hostname to connect
@@ -81,30 +48,37 @@ class _Controller(object):
             @param userDirectory: user directory informed
             @param userID: userID informed
             @param verbosity: debug level
+            @param logger: logger instance name
         '''
+        self.proxy    = proxy
         self.baseurl  = None
         self.request  = None
         self.response = None
         self.session  = None
-        self.verbose  = Verbose()
         self.setUser(userDirectory, userID)
           
         self.chunk_size = 512 #Kb
-        self.verbose.set(verbosity)
+        
+        self.log=logging.getLogger(logName)
+        if not self.log.hasHandlers():
+            self.log.addHandler(logging.StreamHandler(sys.stdout))
+        self.log.setLevel(verbosity)
         
         self.baseurl= 'https://{host}:{port}'.format(host=proxy, port=str(port))
-        self.vproxy= vproxy.strip('/')
-        self.preffix=self.vproxy+'/' if vproxy else '' 
+        if vproxy is None:
+            self.vproxy=None
+            self.preffix=''
+        else:
+            self.vproxy= vproxy.strip('/')
+            self.preffix=self.vproxy+'/' 
         
         if isinstance(certificate, str):
             (base,ext)=os.path.splitext(certificate)
             self.cafile=(base+ext, base+'_key'+ext)
-            if self.verbose.isDebug():
-                print(' CERTKEY: {0}{1}'.format(base, ext))
+            self.log.debug('CERTKEY: %s%s', base, ext)
         else:
             self.cafile=certificate
-            if self.verbose.isDebug():
-                print(' CERT: {0}'.format(certificate))
+            self.log.debug('CERT: %s',certificate)
         self._verify=bool(verify)
         
         if not self._verify:
@@ -130,23 +104,22 @@ class _Controller(object):
                         par[p]=str(v).lower()
                     else:
                         par[p]=str(v)
-                    if self.verbose.isInfo():
-                        print("\t{par}=>{val}".format(par=p, val=par[p]))
+                    self.log.debug(" >> %s=>%s",p , par[p])
                 else:
-                    if self.verbose.isInfo():
-                        print("\t{par}=>(default)".format(par=p))
+                    self.log.debug(" >> %s=>(default)", p)
             
         
         hd= { 'User-agent': self._referer,
               'Pragma': 'no-cache',
               'X-Qlik-User': 'UserDirectory={directory}; UserId={user}'.format(directory=self.UserDirectory, user=self.UserId),
-              'X-Qlik-Virtual-Proxy-Prefix': self.vproxy,
               'x-Qlik-Xrfkey': par.get('Xrfkey'),
               'Accept': 'application/json',
               'Content-Type': 'application/json'}
         
-        hd.update(xhd)
+        if self.vproxy:
+            hd['X-Qlik-Virtual-Proxy-Prefix']=self.vproxy
         
+        hd.update(xhd)
         return(par, hd)  
     
        
@@ -156,8 +129,7 @@ class _Controller(object):
         if str(method).upper() not in ('GET', 'POST', 'PUT', 'DELETE'):
             raise Exception('invalid method <{0}>'.format(method))
        
-        if self.verbose.isInfo():
-            print('\n API endpoint <{0}>'.format(apipath))
+        self.log.info('API %s <%s>', method[:3], apipath)
         
         (par,hd)=self._params_prepare(param, {} if files is None else {'Content-Type': 'application/vnd.qlik.sense.app'})
         
@@ -172,18 +144,17 @@ class _Controller(object):
         self.request=req.Request(method, url, headers=hd, data=data, files=files)
         pr=self.request.prepare()
                 
-        if self.verbose.isInfo():
-            print('\tSEND: '+url)
+        self.log.debug('SEND: %s',url)
                 
         # Execute the HTTP request 
         try:
             self.response = self.session.send(pr, cert=self.cafile, verify=self._verify)
                 
-            if self.verbose.isInfo():
-                if len(self.response.text) < 120 or self.verbose.isDebug():
-                    print('\tRECV: '+self.response.text)
+            if self.log.isEnabledFor(logging.DEBUG):
+                if len(self.response.text) < 120:
+                    self.log.debug('RECV: %s',self.response.text)
                 else:
-                    print('\tRECV: '+self.response.text[:60]+' <<<  >>> '+self.response.text[-60:])
+                    self.log.debug('RECV: %s <<--->> %s', self.response.text[:54], self.response.text[-54:])
             
         except ValueError as e:
             raise Exception('<Value error> {0}'.format(e))
@@ -199,8 +170,7 @@ class _Controller(object):
     def download(self, apipath, filename, param=None):
         """ initialize control structure """
                    
-        if self.verbose.isInfo():
-            print('\n API endpoint <{0}>'.format(apipath))
+        self.log.info('API DOWN <%s>', apipath)
 
         (par,hd)=self._params_prepare(param)
         
@@ -210,8 +180,7 @@ class _Controller(object):
         url='{0}/{1}?{2}'.format(self.baseurl, apipath.lstrip('/'), urlencode(par))
      
         
-        if self.verbose.isInfo():
-            print('\tSEND: '+url)
+        self.log.debug('__SEND: %s',url)
 
                 
         # Execute the HTTP request 
@@ -219,19 +188,15 @@ class _Controller(object):
             self.request = req.get(url, headers=hd, cert=self.cafile, verify=self._verify, stream=True)
                 
             with open(filename, 'wb') as f:
-                if self.verbose.isInfo():
-                    print('\tDownloading (in {0}Kb blocks): '.format(str(self.chunk_size)), end='',flush=True)
+                self.log.info('__Downloading (in %sKb blocks): ', str(self.chunk_size))
                 
                 #download in 512Kb blocks
                 for chunk in self.request.iter_content(chunk_size=self.chunk_size << 10): 
                     if chunk: # filter out keep-alive new chunks
                         f.write(chunk)
-                        if self.verbose.isInfo():
-                            print('.', end='',flush=True)
+                        #self.log.info('.', end='',flush=True)
                             
-                if self.verbose.isInfo():
-                    print(' Done.')
-                    print('\tSaved: {0}'.format(os.path.abspath(filename)))
+                self.log.info('__Saved: %s', os.path.abspath(filename))
                 
             
         except ValueError as e:
@@ -241,7 +206,7 @@ class _Controller(object):
         except Exception as e:
             raise Exception('<Unknow error> {0}'.format(e))
         
-        return(self.request.ok)
+        return(self.request)
 
     
     
@@ -249,13 +214,11 @@ class _Controller(object):
         """ initialize control structure """
         
         class upload_in_chunks(object):
-            def __init__(self, filename, chunksize=512, verbose=True):
+            def __init__(self, filename, chunksize=512):
                 self.filename = filename
                 self.chunksize = chunksize << 10
                 self.totalsize = os.path.getsize(filename)
-                print('{sz}Kb '.format(sz=self.totalsize >> 10), end='',flush=True)
                 self.readsofar = 0
-                self.verbose= verbose
         
             def __iter__(self):
                 with open(self.filename, 'rb') as file:
@@ -264,8 +227,6 @@ class _Controller(object):
                         if not data:
                             break
                         self.readsofar += len(data)
-                        if self.verbose:
-                            print('.', end='',flush=True)
                         yield data
         
             def __len__(self):
@@ -273,8 +234,7 @@ class _Controller(object):
         
              
                        
-        if self.verbose.isInfo():
-            print('\n API endpoint <{0}>'.format(apipath))
+        self.log.info('API UPLO <%s>', apipath)
 
         (par,hd)=self._params_prepare(param, {'Content-Type': 'application/vnd.qlik.sense.app'})
         
@@ -284,20 +244,18 @@ class _Controller(object):
         url='{0}/{1}?{2}'.format(self.baseurl, apipath.lstrip('/'), urlencode(par))
      
         
-        if self.verbose.isInfo():
-            print('\tSEND: '+url)
+        self.log.debug('__SEND: %s', url)
 
                 
         # Execute the HTTP request 
-        try:
-            if self.verbose.isInfo():
-                print('\tUploading ', end='',flush=True)
+        try: 
+            self.log.info('__Uploading {:,} bytes'.format(os.path.getsize(filename)))
                 
             #upload
-            self.request = req.post(url, headers=hd, cert=self.cafile, verify=self._verify, data=upload_in_chunks(filename, self.chunk_size))
+            self.request = req.post(url, headers=hd, cert=self.cafile, verify=self._verify, \
+                                    data=upload_in_chunks(filename, self.chunk_size))
                 
-            if self.verbose.isInfo():
-                print(' Done.', flush=True)                
+            self.log.info('__Done.')                
             
         except ValueError as e:
             raise Exception('<Value error> {0}'.format(e))
@@ -306,7 +264,7 @@ class _Controller(object):
         except Exception as e:
             raise Exception('<Unknow error> {0}'.format(e))
         
-        return(self.request.ok)
+        return(self.request)
 
 
     
@@ -368,13 +326,15 @@ class QPS(object):
     
     VERSION_API= Version('2.1.0')
     
-    
-    def __init__(self, proxy='localhost', port=4243, vproxy='', certificate=None, verify=False, userDirectory='internal', userID='sa_repository', verbosity=Verbose.INFO):  
+    #TODO: vproxy --> default vproxy y no tratar dinamicamente
+    def __init__(self, proxy='localhost', port=4243, vproxy='', certificate=None, verify=False, \
+                 userDirectory='internal', userID='sa_repository', \
+                 verbosity='INFO', logger='qsapi'):  
         
-        self.driver=_Controller(proxy, port, vproxy, certificate, verify, userDirectory, userID, verbosity)
+        self.driver=_Controller(proxy, port, vproxy, certificate, verify, userDirectory, userID, verbosity, logger)
 
-
-
+        
+    #TODO: en funciones QPS, virtual proxy deberia ser un parametro opcional a la funcion
     def GetUser(self, directory, user):
         '''
         @Function: This returns all proxy sessions that a user (identified by {directory} and {user}) has.
@@ -418,21 +378,23 @@ class QRS(object):
     VERSION_API= Version('2.1.0')
     
     
-    def __init__(self, proxy='localhost', port=4242, vproxy='', certificate=None, verify=False, userDirectory='internal', userID='sa_repository', verbosity=Verbose.INFO):
+    def __init__(self, proxy='localhost', port=4242, certificate=None, verify=False, \
+                 userDirectory='internal', userID='sa_repository', \
+                 verbosity='INFO', logger='qsapi'):
         
-        self.driver=_Controller(proxy, port, vproxy, certificate, verify, userDirectory, userID, verbosity)
+        self.driver=_Controller(proxy, port, None, certificate, verify, userDirectory, userID, verbosity, logger)
+        
         self.VERSION_SERVER=self.getServerVersion()
         if self.VERSION_API > self.VERSION_SERVER:
             raise Exception('<server version mismatch, API:{0} > Server:{1}'.format(self.VERSION_API, self.VERSION_SERVER))
         else:
-            if self.driver.verbose.isApi():
-                print(' Server version: {0}'.format(self.VERSION_SERVER))
+            self.driver.log.info('Server version: {0}'.format(self.VERSION_SERVER))
 
 
 
     def ping(self):
         '''
-        @return: “Ping successful”, if there are no problems contacting the Qlik Sense Repository Service (QRS).
+        @return: "Ping successful", if there are no problems contacting the Qlik Sense Repository Service (QRS).
         '''
         return self.driver.call('GET', '/ssl/ping')
 

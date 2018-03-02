@@ -1,4 +1,12 @@
-Change Log, updated 01/03/2018
+Change Log, updated 02/03/2018
+
+v1.2 - Implemented standard logging
+
+•	Modified constructors, is allowed an external logger instance by param
+•	Default console output if logging handler is not provided
+•	Verbose inner class is no longer used (replaced by package logging)
+
+
 
 v1.1 - Merged fixed from Marcin Gamza (@gammar7) 
 
