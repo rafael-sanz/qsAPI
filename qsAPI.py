@@ -28,8 +28,8 @@ from urllib.parse import urlencode
 import random, string, json, uuid
 import logging
 
-__version__ = "1.3"
-__updated__ = '02/03/2018'
+__version__ = "1.4"
+__updated__ = '03/03/2018'
 
 
 
@@ -59,6 +59,7 @@ class _Controller(object):
         self.setUser(userDirectory, userID)
           
         self.chunk_size = 512 #Kb
+        self._max_log_len = 1024 #characters per line
         
         self.log=logging.getLogger(logName)
         if not self.log.hasHandlers():
@@ -149,13 +150,8 @@ class _Controller(object):
                 
         # Execute the HTTP request 
         try:
-            self.response = self.session.send(pr, cert=self.cafile, verify=self._verify)
-                
-            if self.log.isEnabledFor(logging.DEBUG):
-                if len(self.response.text) < 120:
-                    self.log.debug('RECV: %s',self.response.text)
-                else:
-                    self.log.debug('RECV: %s <<--->> %s', self.response.text[:54], self.response.text[-54:])
+            self.response = self.session.send(pr, cert=self.cafile, verify=self._verify)    
+            self.log.debug('RECV: %s',self.response.text)
             
         except ValueError as e:
             raise Exception('<Value error> {0}'.format(e))
@@ -175,14 +171,11 @@ class _Controller(object):
 
         (par,hd)=self._params_prepare(param)
         
-        
         # Build the request        
         self.response= None
         url='{0}/{1}?{2}'.format(self.baseurl, apipath.lstrip('/'), urlencode(par))
      
-        
         self.log.debug('__SEND: %s',url)
-
                 
         # Execute the HTTP request 
         try:
@@ -195,7 +188,6 @@ class _Controller(object):
                 for chunk in self.request.iter_content(chunk_size=self.chunk_size << 10): 
                     if chunk: # filter out keep-alive new chunks
                         f.write(chunk)
-                        #self.log.info('.', end='',flush=True)
                             
                 self.log.info('__Saved: %s', os.path.abspath(filename))
                 
@@ -518,22 +510,41 @@ class QRS(object):
 
 
     
-    def AppExport(self, pId, filename):
+    def AppExport(self, pId, filename=None):
         '''
         @Function: Get an export qvf for an existing app, identified by {id}.
         @param pId: app GUI
         @param filename: target path filename
         @return : stored application
         '''
+        file= filename if filename else pId+'.qvf'
+        if self.VERSION_SERVER < "11.20":
+            #DEPRECATED API since November-2017
+            self.log.info('Server version: %s, using legacy API', self.VERSION_SERVER)
+            r=self.driver.get('/qrs/app/{id}/export'.format(id=pId))
+            if r.ok:
+                r=self.driver.download('/qrs/download/app/{appId}/{TicketId}/{fileName}'.format(appId=pId, TicketId=r.json()['value'], fileName=file), file)
+            return(r)
         
-        pUUID = uuid.uuid4()
-
-        r=self.driver.post('/qrs/app/{id}/export/{token}'.format(id=pId, token=pUUID))
+        #Current API method
+        r=self.driver.post('/qrs/app/{id}/export/{token}'.format(id=pId, token=uuid.uuid4()))
         if r.ok:
-            app=self.driver.get(r.json()['downloadPath']).content
-            with open(filename,'wb') as qvf:
-                return qvf.write(app)
+            r=self.driver.download(r.json()['downloadPath'], file)
+        return(r)
 
+
+
+
+    def AppUpload(self, filename, pName, keepdata=None):
+        '''
+        @Function: Upload a filename.qvf into Central Node.
+        @param filename: target path filename
+        @param name: target app name
+        @param keepdata: Exclude the app data when uploading the app (when it is implemented)
+        '''
+        param ={'name'    :pName,
+                'keepdata':keepdata}
+        return self.driver.upload('/qrs/app/upload', filename, param)
 
     
     def AppGet(self, pId='full', pFilter=None):
@@ -549,24 +560,13 @@ class QRS(object):
     
     def AppMigrate(self, pId):
         '''
-        @Function: Migrate an app so that it can be used in the currently installed version of Qlik Sense. Normally, this is done automatically
+        @Function: Migrate an app so that it can be used in the currently installed version of Qlik Sense.
+                    Normally, this is done automatically
         @param pId: app identifier
         '''
         return self.driver.put('/qrs/app/{id}/migrate'.format(id=pId))
     
-    
-    def AppUpload(self, filename, pName):
-        '''
-        @Function: Upload a filename.qvf into Central Node.
-        @param filename: target path filename
-        @param pName: target app name
-        @return : json response
-        '''
-        file_type = '' # passing empty file to get correct ContentType in header
-        with open(filename,'rb') as qvf:
-            return self.driver.post('/qrs/app/upload?name={name}'.format(name=pName), files=file_type, data=qvf)
-        
-
+            
     
     def AppReload(self, pId):
         '''
@@ -576,35 +576,49 @@ class QRS(object):
         return self.driver.post('/qrs/app/{id}/reload'.format(id=pId))
 
 
-    def AppPublish(self, pId, stream=None):
+    def AppPublish(self, pId, streamId, name=None):
         '''
-        @Function: Publish an app to a stream
+        @Function: Publish an existing app, identified by {id}, to the stream identified by {streamid}.
         @param pId: app identifier
-        @param stream: stream identifier
+        @param streamId: stream identifier
+        @param name: optional alternate name
         '''
-        param={'stream':stream}
-        return self.driver.put('/qrs/app/{id}/publish'.format(id=pId), param).json()
-
-
-
-    def AppReplace(self, pId, rId):
+        param ={'stream' :streamId,
+                'name'   :name}
+        return self.driver.put('/qrs/app/{id}/publish'.format(id=pId), param)
+    
+    
+    def AppUpdate(self, pId, pData):
         '''
-        @Function: Replace an app, identified by {rId}, with the app identified by {pId}.
-        @param pId: identifier of app to be published
-        @param rId: identifier of app to be replaced
+        @Function: update App info referenced 
+        @param pId: App GUID 
         '''
-        return self.driver.put('/qrs/app/{id}/replace?app={appid}'.format(id=pId, appid=rId))
+        return self.driver.put('/qrs/app/{id}'.format(id=pId), data=pData)
+    
+    
+    def AppReplace(self, pId, pAppId):
+        '''
+        @Function: Replace an app, identified by {appid}, with the app identified by {id}. 
+        @param pId: App GUID 
+        @param pAppId: target App GUID
 
-
-
+        If the replaced app is published, only the sheets that were originally published with the app are replaced.
+        If the replaced app is not published, the entire app is replaced.
+        '''
+        param ={'app' :pAppId}
+        return self.driver.put('/qrs/app/{id}/replace'.format(id=pId), param)
+    
+    
     def AppDelete(self, pId):
         '''
-        @Function: Delete an app
-        @param pId: app identifier
+        @Function: delete App referenced 
+        @param pId: App GUID 
         '''
-        
-        return self.driver.delete('/qrs/app/{id}/delete'.format(id=pId))
-
+        return self.driver.delete('/qrs/app/{id}'.format(id=pId))
+    
+    
+    #=========================================================================================
+    
     
     def StreamGet(self, pId='full', pFilter=None):
         '''

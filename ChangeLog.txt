@@ -1,5 +1,16 @@
 Change Log, updated 02/03/2018
 
+v1.4 New functions & Improvements 
+•	Modified AppPublish: optional alternate name
+•	Return standardization: only GET request return the json directly,
+		PUT/POST/DELETE return the Response object to allow check status and complementary info
+		- AppPublish
+•	Fixed AppDelete: wrong endpoint
+•	Added AppUpdate
+•	AppExport use API method according server version 
+•	Fixed AppExport to maintain compatibility for big files (over 2Gb) 
+
+
 v1.3 New functions, fixed and improvements 
 •	Added StreamDictAttributes	
 •	Added UserDictAttributes
