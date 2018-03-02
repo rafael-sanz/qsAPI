@@ -28,8 +28,8 @@ from urllib.parse import urlencode
 import random, string, json, uuid
 import logging
 
-__version__ = "1.2"
-__updated__ = '01/03/2018'
+__version__ = "1.3"
+__updated__ = '02/03/2018'
 
 
 
@@ -51,6 +51,7 @@ class _Controller(object):
             @param logger: logger instance name
         '''
         self.proxy    = proxy
+        self.port     = str(port)
         self.baseurl  = None
         self.request  = None
         self.response = None
@@ -331,6 +332,8 @@ class QPS(object):
                  userDirectory='internal', userID='sa_repository', \
                  verbosity='INFO', logger='qsapi'):  
         
+        if ':' in proxy:
+            (proxy, port) = proxy.split(':')
         self.driver=_Controller(proxy, port, vproxy, certificate, verify, userDirectory, userID, verbosity, logger)
 
         
@@ -382,6 +385,8 @@ class QRS(object):
                  userDirectory='internal', userID='sa_repository', \
                  verbosity='INFO', logger='qsapi'):
         
+        if ':' in proxy:
+            (proxy, port) = proxy.split(':')
         self.driver=_Controller(proxy, port, None, certificate, verify, userDirectory, userID, verbosity, logger)
         
         self.VERSION_SERVER=self.getServerVersion()
@@ -390,6 +395,36 @@ class QRS(object):
         else:
             self.driver.log.info('Server version: {0}'.format(self.VERSION_SERVER))
 
+
+    
+    def _toDict(self, response, uid='full', key='name', attr='id'):
+        r={}
+        if response.ok:
+            j=response.json()
+            if uid != "full":
+                if isinstance(attr, str):
+                    r[j.get(key)]=j.get(attr)
+                elif isinstance(attr, list):
+                    ra={}
+                    for a in attr:
+                        ra[a]=(j.get(a))
+                    r[j.get(key)]=ra
+                else:
+                    raise TypeError('attr argument must be a str or list')
+            else:               
+                for x in j:
+                    if isinstance(attr, str):
+                        r[x.get(key)]=x.get(attr)
+                    elif isinstance(attr, list):
+                        ra={}
+                        for a in attr:
+                            ra[a]=(x.get(a))
+                        r[x.get(key)]=ra
+                    else:
+                        raise TypeError('attr argument must be a str or list')
+        
+        return(r)
+    
 
 
     def ping(self):
@@ -414,7 +449,7 @@ class QRS(object):
         '''
         @Function: Get information on the Qlik Sense repository, including version, database provider, and whether the node is the central node of the site or not.
         '''
-        return self.driver.get('/qrs/about')
+        return self.driver.get('/qrs/about').json()
     
  
     
@@ -452,32 +487,26 @@ class QRS(object):
         '''
         return self.driver.get('/qrs/about/api/enums').json()
 
+
+
+    #=========================================================================================
+
     
     
     def AppDictAttributes(self, guid='full', key='name', attr='id'):
         '''@Function: retrieve a mapping of apps attributes
            @param pId: limmit the scope to the App {GUID}
            @param key: the attribute to be the key
-           @param attr: the attribute value to retrieve
+           @param attr: the attribute value to retrieve (single value or list)
            @return: dict(key:attr)
         '''
         
         apipath='/qrs/app/{guid}'.format(guid=guid)
-            
-        s=self.driver.get(apipath)
-        r={}
-        if s.ok:
-            j=s.json()
-            if guid != "full":
-                r[j.get(key)]=j.get(attr)
-            else:
-                for x in j:
-                    r[x.get(key)]=x.get(attr)
         
-        return(r)
+        return self._toDict(self.driver.get(apipath), guid, key, attr)    
+        
     
-    
-    
+
     def AppCopy(self, pId, name=None):
         '''
         @Function: Copy an existing app, identified by {id}. Optionally, provide a name for the copy.
@@ -510,7 +539,7 @@ class QRS(object):
     def AppGet(self, pId='full', pFilter=None):
         '''
         @Function: retrieve App information
-        @param pId: App GUI 
+        @param pId: App GUID 
         @param pFilter: filter the entities before calculating the number of entities. 
         @return : json response
         '''
@@ -580,34 +609,25 @@ class QRS(object):
     def StreamGet(self, pId='full', pFilter=None):
         '''
         @Function: retrieve Stream information
-        @param pId: Stream GUI 
+        @param pId: Stream GUID 
         @param pFilter: filter the entities before calculating the number of entities. 
         @return : json response
         '''
         return self.driver.get('/qrs/stream/{id}'.format(id=pId), param={'filter':pFilter}).json()
     
-    #TODO: generalizar, es lo mismo que AppDict
-    def UserDictAttributes(self, pUserID='full', key='name', attr='id'):
-        '''@Function: retrieve a mapping of user attributes
-           @param pUserID: limmit the scope to the User {UID}
+    
+    def StreamDictAttributes(self, pStreamID='full', key='name', attr='id'):
+        '''@Function: retrieve a mapping of Stream attributes
+           @param pStreamID: limmit the scope to the Stream {UID}
            @param key: the attribute to be the key
-           @param attr: the attribute value to retrieve
+           @param attr: the attribute value to retrieve (single value or list)
            @return: dict(key:attr)
         '''
-        
-        apipath='/qrs/user/{uid}'.format(uid=pUserID)
-            
-        s=self.driver.get(apipath)
-        r={}
-        if s.ok:
-            j=s.json()
-            if pUserID != "full":
-                r[j.get(key)]=j.get(attr)
-            else:
-                for x in j:
-                    r[x.get(key)]=x.get(attr)
-        
-        return(r)
+        apipath='/qrs/stream/{uid}'.format(uid=pStreamID)            
+        return self._toDict(self.driver.get(apipath), pStreamID, key, attr) 
+    
+    
+    #=========================================================================================     
     
     
     def UserGet(self, pUserID='full', pFilter=None):
@@ -627,7 +647,6 @@ class QRS(object):
         @param pData: json with user information. 
         @return : json response
         '''
-        
         return self.driver.put('/qrs/user/{id}'.format(id=pUserID), data=pData)
     
     
@@ -640,7 +659,20 @@ class QRS(object):
         '''
         return self.driver.delete('/qrs/user/{id}'.format(id=pUserID))
     
-
+    
+    def UserDictAttributes(self, pUserID='full', key='name', attr='id'):
+        '''@Function: retrieve a mapping of user attributes
+           @param pUserID: limmit the scope to the User {UID}
+           @param key: the attribute to be the key
+           @param attr: the attribute value to retrieve (single value or list)
+           @return: dict(key:attr)
+        '''
+        apipath='/qrs/user/{uid}'.format(uid=pUserID)            
+        return self._toDict(self.driver.get(apipath),pUserID,key,attr)
+    
+    
+    #=========================================================================================
+    
 
    
     def SystemRules(self, pFilter=None):
@@ -648,7 +680,22 @@ class QRS(object):
         @Function: Get the system rules
         '''
         return self.driver.get('/qrs/systemrule/full', {'filter':pFilter}).json()
-        #TODO: Complete Rules methods    
+   
+   
+    
+    def SystemRulesDictAttributes(self, pRuleID='full', key='name', attr='id'):
+        '''@Function: retrieve a mapping of rules attributes
+           @param pRuleID: limmit the scope to the Rule {UID}
+           @param key: the attribute to be the key
+           @param attr: the attribute value to retrieve (single value or list)
+           @return: dict(key:attr)
+        '''
+        apipath='/qrs/systemrule/{uid}'.format(uid=pRuleID)            
+        return self._toDict(self.driver.get(apipath),pRuleID,key,attr)
+    
+    
+    
+    #=========================================================================================
     
     
     

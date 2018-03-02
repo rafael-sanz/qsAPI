@@ -1,5 +1,13 @@
 Change Log, updated 02/03/2018
 
+v1.3 New functions, fixed and improvements 
+•	Added StreamDictAttributes	
+•	Added UserDictAttributes
+•	Added SystemRulesDictAttributes
+•	Fixed: getAbout now return the json response and not the Response object
+•	constructor proxy & port params allow compact format proxy="host:port"
+
+
 v1.2 - Implemented standard logging
 
 •	Modified constructors, is allowed an external logger instance by param
