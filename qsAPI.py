@@ -20,7 +20,6 @@ This software is MIT licensed (see terms below)
     IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 '''
 
-#import ConfigParser
 import sys, os.path
 from distutils.version import LooseVersion as Version
 import requests as req
@@ -28,8 +27,8 @@ from urllib.parse import urlencode
 import random, string, json, uuid
 import logging
 
-__version__ = "1.4"
-__updated__ = '03/03/2018'
+__version__ = "1.5"
+__updated__ = '05/03/2018'
 
 
 
@@ -59,7 +58,6 @@ class _Controller(object):
         self.setUser(userDirectory, userID)
           
         self.chunk_size = 512 #Kb
-        self._max_log_len = 1024 #characters per line
         
         self.log=logging.getLogger(logName)
         if not self.log.hasHandlers():
@@ -518,9 +516,9 @@ class QRS(object):
         @return : stored application
         '''
         file= filename if filename else pId+'.qvf'
-        if self.VERSION_SERVER < "11.20":
+        if self.VERSION_SERVER < "17.0":
             #DEPRECATED API since November-2017
-            self.log.info('Server version: %s, using legacy API', self.VERSION_SERVER)
+            self.driver.log.info('Server version: %s, using legacy API', self.VERSION_SERVER)
             r=self.driver.get('/qrs/app/{id}/export'.format(id=pId))
             if r.ok:
                 r=self.driver.download('/qrs/download/app/{appId}/{TicketId}/{fileName}'.format(appId=pId, TicketId=r.json()['value'], fileName=file), file)
@@ -620,6 +618,26 @@ class QRS(object):
     #=========================================================================================
     
     
+    def StreamCreate(self, pName, pProperties=[] , pTags=[], pUUID=None):
+        '''
+        @Function: create a Stream
+        @param pName: Stream Name 
+        @param pUID: Stream UUID
+        @param pProperties: list of dict with properties definitions.
+        @param pTags: list of dict with tag definitions 
+        @return : json response
+        '''
+        param={'name': pName,
+               'customProperties': pProperties,
+               'tags': pTags}
+        
+        if pUUID is not None:
+            param['id']=pUUID
+                 
+        return self.driver.post('/qrs/stream', data=param).json()
+    
+    
+    
     def StreamGet(self, pId='full', pFilter=None):
         '''
         @Function: retrieve Stream information
@@ -628,6 +646,26 @@ class QRS(object):
         @return : json response
         '''
         return self.driver.get('/qrs/stream/{id}'.format(id=pId), param={'filter':pFilter}).json()
+    
+    
+    
+    def StreamUpdate(self, pId, pData):
+        '''
+        @Function: update Stream info referenced 
+        @param pId: Stream GUID 
+        '''
+        return self.driver.put('/qrs/stream/{id}'.format(id=pId), data=pData)
+    
+    
+    
+    def StreamDelete(self, pId):
+        '''
+        @Function: delete Stream referenced 
+        @param pId: Stream GUID 
+        @return : json response
+        '''
+        return self.driver.delete('/qrs/stream/{id}'.format(id=pId))
+    
     
     
     def StreamDictAttributes(self, pStreamID='full', key='name', attr='id'):

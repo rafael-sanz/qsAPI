@@ -1,4 +1,10 @@
-Change Log, updated 02/03/2018
+Change Log, updated 05/03/2018
+
+v1.5 New functions & Fixed 
+•	Fixed version legacy for AppExport
+•	Added StreamCreate
+•	Added StreamUpdate
+
 
 v1.4 New functions & Improvements 
 •	Modified AppPublish: optional alternate name
