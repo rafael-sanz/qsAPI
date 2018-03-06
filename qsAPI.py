@@ -27,7 +27,7 @@ from urllib.parse import urlencode
 import random, string, json, uuid
 import logging
 
-__version__ = "1.5"
+__version__ = "1.6"
 __updated__ = '05/03/2018'
 
 
@@ -147,16 +147,8 @@ class _Controller(object):
         self.log.debug('SEND: %s',url)
                 
         # Execute the HTTP request 
-        try:
-            self.response = self.session.send(pr, cert=self.cafile, verify=self._verify)    
-            self.log.debug('RECV: %s',self.response.text)
-            
-        except ValueError as e:
-            raise Exception('<Value error> {0}'.format(e))
-        except IOError as e:
-            raise Exception('<IO error> {0}'.format(e))
-        except Exception as e:
-            raise Exception('<Unknow error> {0}'.format(e))
+        self.response = self.session.send(pr, cert=self.cafile, verify=self._verify)    
+        self.log.debug('RECV: %s',self.response.text)
         
         return(self.response)
 
@@ -176,26 +168,18 @@ class _Controller(object):
         self.log.debug('__SEND: %s',url)
                 
         # Execute the HTTP request 
-        try:
-            self.request = req.get(url, headers=hd, cert=self.cafile, verify=self._verify, stream=True)
-                
-            with open(filename, 'wb') as f:
-                self.log.info('__Downloading (in %sKb blocks): ', str(self.chunk_size))
-                
-                #download in 512Kb blocks
-                for chunk in self.request.iter_content(chunk_size=self.chunk_size << 10): 
-                    if chunk: # filter out keep-alive new chunks
-                        f.write(chunk)
-                            
-                self.log.info('__Saved: %s', os.path.abspath(filename))
-                
+
+        self.request = req.get(url, headers=hd, cert=self.cafile, verify=self._verify, stream=True)
             
-        except ValueError as e:
-            raise Exception('<Value error> {0}'.format(e))
-        except IOError as e:
-            raise Exception('<IO error> {0}'.format(e))
-        except Exception as e:
-            raise Exception('<Unknow error> {0}'.format(e))
+        with open(filename, 'wb') as f:
+            self.log.info('__Downloading (in %sKb blocks): ', str(self.chunk_size))
+            
+            #download in 512Kb blocks
+            for chunk in self.request.iter_content(chunk_size=self.chunk_size << 10): 
+                if chunk: # filter out keep-alive new chunks
+                    f.write(chunk)
+                        
+            self.log.info('__Saved: %s', os.path.abspath(filename))
         
         return(self.request)
 
@@ -239,21 +223,14 @@ class _Controller(object):
 
                 
         # Execute the HTTP request 
-        try: 
-            self.log.info('__Uploading {:,} bytes'.format(os.path.getsize(filename)))
-                
-            #upload
-            self.request = req.post(url, headers=hd, cert=self.cafile, verify=self._verify, \
-                                    data=upload_in_chunks(filename, self.chunk_size))
-                
-            self.log.info('__Done.')                
+        self.log.info('__Uploading {:,} bytes'.format(os.path.getsize(filename)))
             
-        except ValueError as e:
-            raise Exception('<Value error> {0}'.format(e))
-        except IOError as e:
-            raise Exception('<IO error> {0}'.format(e))
-        except Exception as e:
-            raise Exception('<Unknow error> {0}'.format(e))
+        #upload
+        self.request = req.post(url, headers=hd, cert=self.cafile, verify=self._verify, \
+                                data=upload_in_chunks(filename, self.chunk_size))
+            
+        self.log.info('__Done.')                
+            
         
         return(self.request)
 
@@ -763,14 +740,43 @@ class QRS(object):
 
 
 if __name__ == "__main__":
-    
+    '''
+    Alternate command line invocation, examples:
+        python qsAPI.py -s myServer -c dir/client.pem -Q QRS AppDictAttributes
+        python qsAPI.py -s myServer -c dir/client.pem -Q QRS -v INFO AppExport d8b120d7-a6e4-42ff-90b2-2ac6a3d92233 
+        python qsAPI.py -s myServer -c dir/client.pem -Q QRS -v INFO AppReload d8b120d7-a6e4-42ff-90b2-2ac6a3d92233
+        
+    '''
+    from argparse import ArgumentParser
+    import inspect
     from pprint import pprint
     
-    qrs=QRS(proxy='TESTW7-S', verbosity=Verbose.DEBUG, certificate='C:\\Users\\Test\\workspace\\QSenseAPI\\certificates\\testw7-s\\client.pem')
-    qrs.ping()
+    parser = ArgumentParser(description='qsAPI for QlikSense')
+    parser.add_argument('-s', dest='server', required=True)
+    parser.add_argument('-c', dest='certificate', required=True)
+    parser.add_argument("-Q", dest="api", choices=['QPS','QRS'], default='QRS', required=True, help="service API")
+    parser.add_argument(dest='method', nargs='*', help='API method to call')
+    parser.add_argument("-v", dest="verbose", choices=['DEBUG','INFO','WARNING','ERROR','CRITICAL'], default='INFO', help="set verbosity level")
+    parser.add_argument('--version', action='version', version='tools {}'.format(__version__))
     
-    pprint(qrs.AppDictAttributes())
-    pprint([qrs.count(x) for x in ('app','user','stream','dataconnection')])
+    # Process arguments
+    args = parser.parse_args()
+    Q=QPS if args.api == 'QPS' else QRS
 
+    qr=Q(proxy=args.server, certificate=args.certificate, verbosity=args.verbose)
+    m=[x for x,y in inspect.getmembers(Q) if not x.startswith('_') ]
+    
+    if not len(args.method):
+        print("ERROR: method is mandatory argument, expected=> {}".format(m))
+        sys.exit(-1)
+    
+    cmd=args.method[0]
+    if cmd not in m:
+        print('ERROR: "{}" is not a method of {}, expected=> {}'.format(cmd, args.api, m))
+        sys.exit(-1)
+    
+    par=args.method[1:]
+    pprint(getattr(qr, cmd)(*par))
+    sys.exit(0)
 
     
