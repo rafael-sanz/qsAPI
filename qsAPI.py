@@ -755,7 +755,7 @@ if __name__ == "__main__":
     parser.add_argument('-s', dest='server', required=True)
     parser.add_argument('-c', dest='certificate', required=True)
     parser.add_argument("-Q", dest="api", choices=['QPS','QRS'], default='QRS', required=True, help="service API")
-    parser.add_argument(dest='method', nargs='*', help='API method to call')
+    parser.add_argument(dest='method', nargs='+', help='API method to call')
     parser.add_argument("-v", dest="verbose", choices=['DEBUG','INFO','WARNING','ERROR','CRITICAL'], default='INFO', help="set verbosity level")
     parser.add_argument('--version', action='version', version='tools {}'.format(__version__))
     
@@ -766,17 +766,12 @@ if __name__ == "__main__":
     qr=Q(proxy=args.server, certificate=args.certificate, verbosity=args.verbose)
     m=[x for x,y in inspect.getmembers(Q) if not x.startswith('_') ]
     
-    if not len(args.method):
-        print("ERROR: method is mandatory argument, expected=> {}".format(m))
-        sys.exit(-1)
-    
     cmd=args.method[0]
     if cmd not in m:
         print('ERROR: "{}" is not a method of {}, expected=> {}'.format(cmd, args.api, m))
         sys.exit(-1)
     
-    par=args.method[1:]
-    pprint(getattr(qr, cmd)(*par))
+    pprint(getattr(qr, cmd)(*args.method[1:]))
     sys.exit(0)
 
     
