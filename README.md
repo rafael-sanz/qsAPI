@@ -2,9 +2,9 @@
 qsAPI is a client for Qlik Sense QPS and QRS interfaces written in python that provides an environment for managing a Qlik Sense site via programming or interactive console. The module provides a set of commands for viewing and editing configuration settings, as well as managing tasks and other features available through APIs.
 
 ## Installation
-You could use your preferred IDE (Eclipse, Visual Studio, NetBeans, …) with the python interpreter 3.x or directly in console. Take a look at (http://www.activestate.com/activepython) or (https://www.python.org). Once the module is loaded you can view a list of available commands with the autocomplete tooltips.
+You could use your preferred IDE (Eclipse, Visual Studio, NetBeans, â€¦) with the python interpreter 3.x or directly in console. Take a look at (http://www.activestate.com/activepython) or (https://www.python.org). Once the module is loaded you can view a list of available commands with the autocomplete tooltips.
 
-The python “requests” library is a requisite (http://docs.python-requests.org/en/master/user/install/). Just execute in the command line:
+The python â€œrequestsâ€� library is a requisite (http://docs.python-requests.org/en/master/user/install/). Just execute in the command line:
 ```python
 pip install requests
 ```
@@ -24,7 +24,7 @@ Or just a simple command line console if complex scripts are no needed:
 ### Connecting with certificates
 The first step is to build a handler invoking the constructor of the class you will use containing the host parameters, this will attempt to connect to the Qlik Sense server. Just export previously from QlikSense console the certificate in portable format and copy the folder in your machine:
 ```python
->>> qrs=qsAPI.QRS(proxy=’hostname', certificate='path\\client.pem')
+>>> qrs=qsAPI.QRS(proxy=â€™hostname', certificate='path\\client.pem')
 ```
 ## Examples
 #### Count users using a filter
@@ -65,8 +65,16 @@ qps.DeleteUser('DIR','name')
 Take a look at the Wiki area: (https://github.com/rafael-sanz/qsAPI/wiki)
 
 
+## Command Line
+Alternative command line, examples:
+```
+python qsAPI.py -s myServer -c dir/client.pem -Q QRS AppDictAttributes
+python qsAPI.py -s myServer -c dir/client.pem -Q QRS -v INFO AppExport d8b120d7-a6e4-42ff-90b2-2ac6a3d92233 
+python qsAPI.py -s myServer -c dir/client.pem -Q QRS -v INFO AppReload d8b120d7-a6e4-42ff-90b2-2ac6a3d92233
+```
+
 ## TODO
-The module is in progress, just a subset of method are implemented. But all the endpoints could be handled through the inner class “driver” and the methods `get, post, put, delete`.
+The module is in progress, just a subset of method are implemented. But all the endpoints could be handled through the inner class â€œdriverâ€� and the methods `get, post, put, delete`.
 ```python
 qps.driver.get('/qrs/about/api/enums').json()
 ```

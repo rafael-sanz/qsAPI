@@ -741,7 +741,7 @@ class QRS(object):
 
 if __name__ == "__main__":
     '''
-    Alternate command line invocation, examples:
+    Alternative command line invocation, examples:
         python qsAPI.py -s myServer -c dir/client.pem -Q QRS AppDictAttributes
         python qsAPI.py -s myServer -c dir/client.pem -Q QRS -v INFO AppExport d8b120d7-a6e4-42ff-90b2-2ac6a3d92233 
         python qsAPI.py -s myServer -c dir/client.pem -Q QRS -v INFO AppReload d8b120d7-a6e4-42ff-90b2-2ac6a3d92233
