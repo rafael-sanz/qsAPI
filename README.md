@@ -8,7 +8,13 @@ The python `requests` library is a requisite (http://docs.python-requests.org/en
 ```python
 pip install requests
 ```
-The module can be used importing qsAPI.py at the beginning of your python script or console, the module will then be loaded and ready to use.
+
+Optionally, if you plan connect using NTLM authentication, then the library `requests_ntlm` too. 
+```python
+pip install requests_ntlm 
+```
+
+Now, the module can be used just importing qsAPI.py at the beginning of your python script or console, the module will then be loaded and ready to use.
 ```python
 >>> import qsAPI
 ```
@@ -26,6 +32,13 @@ The first step is to build a handler invoking the constructor of the class you w
 ```python
 >>> qrs=qsAPI.QRS(proxy='hostname', certificate='path\\client.pem')
 ```
+
+### Connecting with windows credentials (NTLM)
+Alternatively, the constructor accept user credentials via arguments.
+```python
+>>> qrs=qsAPI.QRS(proxy='hostname', user=('yor_domain','username','password'))
+```
+
 ## Examples
 #### Count users using a filter
 ```python
@@ -56,6 +69,7 @@ qrs.SystemRules("type eq 'Custom'")
 ```python
 [x['SessionId'] for x in qps.GetUser('DIR', 'name').json()]
 ```
+
 #### teardown of all connections for the user and related sessions
 ```python
 qps.DeleteUser('DIR','name')
@@ -66,18 +80,18 @@ Take a look at the Wiki area: (https://github.com/rafael-sanz/qsAPI/wiki)
 
 
 ## Command Line
-Alternative command line, examples:
+Alternative command line is available too, examples:
 ```
 python qsAPI.py --help
-python qsAPI.py -s myServer -c dir/client.pem -Q QRS AppDictAttributes
+python qsAPI.py -s myServer -c dir/client.pem -Q QRS StreamDictAttributes
 python qsAPI.py -s myServer -c dir/client.pem -Q QRS -v INFO AppExport d8b120d7-a6e4-42ff-90b2-2ac6a3d92233 
 python qsAPI.py -s myServer -c dir/client.pem -Q QRS -v INFO AppReload d8b120d7-a6e4-42ff-90b2-2ac6a3d92233
 ```
 
 ## TODO
-The module is in progress, just a subset of method are implemented. But all the endpoints could be handled through the inner class `driver` and the methods `get, post, put, delete`.
+The module is in progress, a subset of methods are implemented. But all the endpoints could be handled through the inner class `driver` and the methods `get, post, put, delete`.
 ```python
-qps.driver.get('/qrs/about/api/enums').json()
+qps.driver.get('/qrs/about/api/enums')
 ```
 
 ## License
