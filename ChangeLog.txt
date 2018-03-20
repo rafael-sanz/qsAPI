@@ -1,5 +1,10 @@
 Change Log, updated 06/03/2018
 
+v1.7 New functionality
+•	NTLM authentication supported
+•	userDirectory and userID params in constructors are consolidated in param "user" (tuple or dict with credentials)
+
+
 v1.6 Improvements 
 •	standardization of exceptions : are raised without masking and must be handle outside API
 •	Added command line support, example:
