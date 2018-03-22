@@ -1,5 +1,9 @@
 Change Log, updated 06/03/2018
 
+v1.8 Improvements
+•	virtual proxy ensured to work even in complex proxies with multiple redirections
+
+
 v1.7 New functionality
 •	NTLM authentication supported
 •	userDirectory and userID params in constructors are consolidated in param "user" (tuple or dict with credentials)

@@ -24,11 +24,11 @@ import sys, os.path
 from distutils.version import LooseVersion as Version
 import requests as req
 import urllib.parse as up
-import random, string, json, uuid
+import random, string, json, uuid, re
 import logging
 
-__version__ = "1.7"
-__updated__ = '19/03/2018'
+__version__ = "1.8"
+__updated__ = '22/03/2018'
 
 
 
@@ -38,27 +38,34 @@ class _Controller(object):
     _referer='Mozilla/5.0 (Windows NT 6.3; Win64; x64) qsAPI APIREST (QSense)'
     
     try:
-        from requests_ntlm import HttpNtlmAuth
+        from requests_ntlm import HttpNtlmAuth as _ntlm
     except ImportError:
-        HttpNtlmAuth=None  
+        _ntlm=None  
     
-    def __init__(self, proxy, port, preffix, certificate, verify, user, verbosity, logName):
+    def __init__(self, proxy, port, vproxy, certificate, verify, user, verbosity, logName):
         ''' 
             @Function setup: Setup the connection and initialize handlers
             @param proxy: hostname to connect
             @param port: port number
+            @param vproxy: virtual proxy conf. {preffix:'proxy', path: '^/qrs/', template:'/{}/qrs/'})
             @param certificate: path to .pem client certificate
             @param verify: false to trust in self-signed certificates
-            @param user: dict with keys {userDirectory:, userID:, password:}
+            @param user: dict with keys {userDirectory:, userID:, password:} or tuple
             @param verbosity: debug level
             @param logger: logger instance name
         '''
         self.proxy    = proxy
         self.port     = str(port)
+        self.proxy    = proxy;
+        self.vproxy   = None;
         self.baseurl  = None
         self.request  = None
         self.response = None
         self.session  = None
+        
+        if vproxy:
+            self.setVProxy(**vproxy)
+        
         if isinstance(user, dict):
             self.setUser(user.get('userDirectory'), user.get('userID'), user.get('password'))
         else:
@@ -72,7 +79,7 @@ class _Controller(object):
         self.log.setLevel(verbosity)
         
         #TODO: mover schema a configurable
-        self.baseurl= 'https://{host}:{port}{prf}'.format(host=proxy, port=str(port), prf=preffix)
+        self.baseurl= 'https://{host}:{port}'.format(host=proxy, port=str(port))
         
         if isinstance(certificate, str):
             (base,ext)=os.path.splitext(certificate)
@@ -91,24 +98,28 @@ class _Controller(object):
         
         self.session=req.Session()
         
-        if self.HttpNtlmAuth:
+        if self._ntlm:
             self.log.debug('NTLM authentication enabled')
-            self.session.auth = self.HttpNtlmAuth('{domain}\\{user}'.format(domain=self.UserDirectory, user=self.UserId), self.Password)
+            self.session.auth = self._ntlm('{domain}\\{user}'.format(domain=self.UserDirectory, user=self.UserId), self.Password)
         
         
-        
+    def setVProxy(self, preffix, path, template):
+        self.vproxy={}
+        self.vproxy['preffix'] =preffix               # proxy
+        self.vproxy['path']    =re.compile(path)      # ^/qrs/
+        self.vproxy['template']=template              # /{}/qrs/
+        self.vproxy['pxpath']  =template.format(preffix)    
+ 
         
     def setUser(self, userDirectory, userID, password=None):
         self.UserDirectory=userDirectory
         self.UserId = userID
         self.Password=password
-        
-        
+            
         
     def _params_prepare(self, param, xhd={}):
                 
         par=dict({'Xrfkey': ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(16))})
-
         if isinstance(param, dict):
             for p,v in param.items():
                 if v is not None:
@@ -120,7 +131,6 @@ class _Controller(object):
                 else:
                     self.log.debug(" >> %s=>(default)", p)
             
-        
         hd= { 'User-agent': self._referer,
               'Pragma': 'no-cache',
               'X-Qlik-User': 'UserDirectory={directory}; UserId={user}'.format(directory=self.UserDirectory, user=self.UserId),
@@ -128,18 +138,18 @@ class _Controller(object):
               'Accept': 'application/json',
               'Content-Type': 'application/json'}
         
-        #if self.vproxy:
-        #    hd['X-Qlik-Virtual-Proxy-Prefix']=self.vproxy
-        
-        #TODO: PROVISIONAL
-        #hd['X-Qlik-Virtual-Proxy-Prefix']='proxy'
-        
+        if self.vproxy:
+            hd['X-Qlik-Virtual-Proxy-Prefix']=self.vproxy['preffix']
+                
         hd.update(xhd)
         return(par, hd)  
     
     
+    
     def _params_update(self, url, par):
         scheme, netloc, path, query, fragment=up.urlsplit(url)
+        if self.vproxy:
+            path= self.vproxy['path'].sub(self.vproxy['pxpath'], path)
         p=up.parse_qs(query)
         p.update(par)
         query=up.urlencode(p,doseq=True,quote_via=up.quote)
@@ -148,11 +158,11 @@ class _Controller(object):
         
     
        
-    def call(self, method='GET', apipath='/', param=None, data=None, files=None):
+    def call(self, method, apipath, param=None, data=None, files=None):
         """ initialize control structure """
                
         if str(method).upper() not in ('GET', 'POST', 'PUT', 'DELETE'):
-            raise Exception('invalid method <{0}>'.format(method))
+            raise ValueError('invalid method <{0}>'.format(method))
        
         self.log.info('API %s <%s>', method[:3], apipath)
         
@@ -161,9 +171,7 @@ class _Controller(object):
         # Build the request        
         self.response= None
             
-        url=self._params_update(self.baseurl+apipath, par)
-        
-        
+        url=self._params_update(up.urljoin(self.baseurl,apipath), par)
         self.request=req.Request(method, url, headers=hd, data=data, files=files, auth=self.session.auth)
         pr=self.session.prepare_request(self.request)
                 
@@ -199,9 +207,7 @@ class _Controller(object):
         # Build the request        
         self.response= None
         
-        #TODO: mejorar
-        #url='{0}/{1}?{2}'.format(self.baseurl, apipath.lstrip('/'), up.urlencode(par))
-        url=self._params_update('https://{host}:{port}'.format(host=self.proxy, port=str(self.port))+apipath, par)
+        url=self._params_update(up.urljoin(self.baseurl,apipath), par)
      
         self.log.debug('__SEND: %s',url)
                 
@@ -250,16 +256,11 @@ class _Controller(object):
            
         # Build the request        
         self.response= None
-        #url='{0}/{1}?{2}'.format(self.baseurl, apipath.lstrip('/'), up.urlencode(par))
-        url=self._params_update(self.baseurl+apipath, par)
-             
+        url=self._params_update(up.urljoin(self.baseurl,apipath), par)
         self.log.debug('__SEND: %s', url)
 
         # Execute the HTTP request 
         self.log.info('__Uploading {:,} bytes'.format(os.path.getsize(filename)))
-            
-        #TODO: mover a session
-        #upload
         self.request = self.session.post(url, headers=hd, cert=self.cafile, verify=self._verify, \
                                 data=upload_in_chunks(filename, self.chunk_size), auth=self.session.auth)
             
@@ -270,7 +271,7 @@ class _Controller(object):
 
     
     
-    def get(self, apipath='/qrs/about/api/description', param=None):
+    def get(self, apipath, param=None):
         '''
         @Function get: generic purpose call
         @param apipath: uri REST path
@@ -327,7 +328,6 @@ class QPS(object):
     
     VERSION_API= Version(__version__)
     
-    #TODO: vproxy --> default vproxy y no tratar dinamicamente
     def __init__(self, proxy='localhost', port=4243, vproxy=None, certificate=None, verify=False, \
                  user={'userDirectory':'internal', 'userID':'sa_repository', 'password': None}, \
                  verbosity='INFO', logger='qsapi'):  
@@ -335,16 +335,17 @@ class QPS(object):
         if ':' in proxy:
             (proxy, port) = proxy.split(':')
         
-        preffix='/qps/{}'.format(vproxy.rstrip('/')) if vproxy else '/qps'
-        self.driver=_Controller(proxy, port, preffix, certificate, verify, user, verbosity, logger)
+        p_vproxy={'preffix': vproxy, 'path': '^/qps/', 'template':'/{}/qps/'} if vproxy else None
+        
+        self.driver=_Controller(proxy, port, p_vproxy, certificate, verify, user, verbosity, logger)
 
         
-    #TODO: en funciones QPS, virtual proxy deberia ser un parametro opcional a la funcion
+
     def GetUser(self, directory, user):
         '''
         @Function: This returns all proxy sessions that a user (identified by {directory} and {user}) has.
         '''
-        apipath='/user/{directory}/{id}'.format(directory=directory, id=user)
+        apipath='/qps/user/{directory}/{id}'.format(directory=directory, id=user)
         return self.driver.get(apipath)
 
     
@@ -354,7 +355,7 @@ class QPS(object):
         @Function: This is part of the Logout API. The directory and ID are the same UserDirectory and UserId as those that were sent in POST /qps/{virtual proxy/}ticket.
                     A list of all proxy sessions that were connected to the deleted user is returned. 
         '''
-        apipath='/user/{directory}/{id}'.format(directory=directory, id=user)
+        apipath='/qps/user/{directory}/{id}'.format(directory=directory, id=user)
         return self.driver.delete(apipath)
     
 
@@ -363,7 +364,7 @@ class QPS(object):
         '''
         @Function: This returns the proxy session identified by {id}.
         '''
-        apipath='/session/{id}'.format(id=pId)
+        apipath='/qps/session/{id}'.format(id=pId)
         return self.driver.get(apipath)
     
     
@@ -371,7 +372,7 @@ class QPS(object):
         '''
         @Function: Delete the proxy session identified by {id}.
         '''
-        apipath='/session/{id}'.format(virtual_proxy=self.driver.preffix, id=pId)
+        apipath='/qps/session/{id}'.format(virtual_proxy=self.driver.preffix, id=pId)
         return self.driver.delete(apipath)
 
 
@@ -390,8 +391,9 @@ class QRS(object):
         if ':' in proxy:
             (proxy, port) = proxy.split(':')
             
-        preffix='/{}/qrs'.format(vproxy.rstrip('/')) if vproxy else '/qrs'    
-        self.driver=_Controller(proxy, port, preffix, certificate, verify, user, verbosity, logger)
+        p_vproxy={'preffix': vproxy, 'path': '^/qrs/', 'template':'/{}/qrs/'} if vproxy else None
+            
+        self.driver=_Controller(proxy, port, p_vproxy, certificate, verify, user, verbosity, logger)
         
         self.VERSION_SERVER=self.getServerVersion()
         if self.VERSION_API > self.VERSION_SERVER:
@@ -435,7 +437,7 @@ class QRS(object):
         '''
         @return: "Ping successful", if there are no problems contacting the Qlik Sense Repository Service (QRS).
         '''
-        return self.driver.call('GET', '/ssl/ping')
+        return self.driver.call('GET', '/qrs/ssl/ping')
 
 
 
@@ -444,7 +446,7 @@ class QRS(object):
         '''
         @Function: retrieve the server version
         '''
-        return Version(self.driver.call('GET', '/about').json().get('buildVersion'))
+        return Version(self.driver.call('GET', '/qrs/about').json().get('buildVersion'))
 
  
  
@@ -453,7 +455,7 @@ class QRS(object):
         '''
         @Function: Get information on the Qlik Sense repository, including version, database provider, and whether the node is the central node of the site or not.
         '''
-        return self.driver.get('/about').json()
+        return self.driver.get('/qrs/about').json()
     
  
     
@@ -464,7 +466,7 @@ class QRS(object):
         @param pFilter: filter the entities before calculating the number of entities. 
         @return : integer from json response
         '''
-        return self.driver.get('/{0}/count'.format(pType), param={'filter':pFilter}).json()['value']
+        return self.driver.get('/qrs/{0}/count'.format(pType), param={'filter':pFilter}).json()['value']
  
     
     
@@ -482,14 +484,14 @@ class QRS(object):
                'method'  : method,
                'format'  : outformat}
         
-        return self.driver.get('/about/api/description', param).json()
+        return self.driver.get('/qrs/about/api/description', param).json()
 
 
 
     def getEnum(self):
         '''@Function: Get all enums that are used by the public part of the Qlik Sense Repository Service (QRS) API.
         '''
-        return self.driver.get('/about/api/enums').json()
+        return self.driver.get('/qrs/about/api/enums').json()
 
 
 
@@ -505,7 +507,7 @@ class QRS(object):
            @return: dict(key:attr)
         '''
         
-        apipath='/app/{guid}'.format(guid=guid)
+        apipath='/qrs/app/{guid}'.format(guid=guid)
         
         return self._toDict(self.driver.get(apipath), guid, key, attr)    
         
@@ -518,7 +520,7 @@ class QRS(object):
         @param name: Name of the app
         '''
         param={'name':name}
-        return self.driver.post('/app/{id}/copy'.format(id=pId), param).json()
+        return self.driver.post('/qrs/app/{id}/copy'.format(id=pId), param).json()
 
 
     
@@ -533,13 +535,13 @@ class QRS(object):
         if self.VERSION_SERVER < "17.0":
             #DEPRECATED API since November-2017
             self.driver.log.info('Server version: %s, using legacy API', self.VERSION_SERVER)
-            r=self.driver.get('/app/{id}/export'.format(id=pId))
+            r=self.driver.get('/qrs/app/{id}/export'.format(id=pId))
             if r.ok:
-                r=self.driver.download('/download/app/{appId}/{TicketId}/{fileName}'.format(appId=pId, TicketId=r.json()['value'], fileName=file), file)
+                r=self.driver.download('/qrs/download/app/{appId}/{TicketId}/{fileName}'.format(appId=pId, TicketId=r.json()['value'], fileName=file), file)
             return(r)
         
         #Current API method
-        r=self.driver.post('/app/{id}/export/{token}'.format(id=pId, token=uuid.uuid4()))
+        r=self.driver.post('/qrs/app/{id}/export/{token}'.format(id=pId, token=uuid.uuid4()))
         if r.ok:
             r=self.driver.download(r.json()['downloadPath'], file)
         return(r)
@@ -556,7 +558,7 @@ class QRS(object):
         '''
         param ={'name'    :pName,
                 'keepdata':keepdata}
-        return self.driver.upload('/app/upload', filename, param)
+        return self.driver.upload('/qrs/app/upload', filename, param)
 
     
     def AppGet(self, pId='full', pFilter=None):
@@ -566,7 +568,7 @@ class QRS(object):
         @param pFilter: filter the entities before calculating the number of entities. 
         @return : json response
         '''
-        return self.driver.get('/app/{id}'.format(id=pId), param={'filter':pFilter}).json()
+        return self.driver.get('/qrs/app/{id}'.format(id=pId), param={'filter':pFilter}).json()
     
     
     
@@ -576,7 +578,7 @@ class QRS(object):
                     Normally, this is done automatically
         @param pId: app identifier
         '''
-        return self.driver.put('/app/{id}/migrate'.format(id=pId))
+        return self.driver.put('/qrs/app/{id}/migrate'.format(id=pId))
     
             
     
@@ -585,7 +587,7 @@ class QRS(object):
         @Function: Reload an app
         @param pId: app identifier
         '''
-        return self.driver.post('/app/{id}/reload'.format(id=pId))
+        return self.driver.post('/qrs/app/{id}/reload'.format(id=pId))
 
 
     def AppPublish(self, pId, streamId, name=None):
@@ -597,7 +599,7 @@ class QRS(object):
         '''
         param ={'stream' :streamId,
                 'name'   :name}
-        return self.driver.put('/app/{id}/publish'.format(id=pId), param)
+        return self.driver.put('/qrs/app/{id}/publish'.format(id=pId), param)
     
     
     def AppUpdate(self, pId, pData):
@@ -605,7 +607,7 @@ class QRS(object):
         @Function: update App info referenced 
         @param pId: App GUID 
         '''
-        return self.driver.put('/app/{id}'.format(id=pId), data=pData)
+        return self.driver.put('/qrs/app/{id}'.format(id=pId), data=pData)
     
     
     def AppReplace(self, pId, pAppId):
@@ -618,7 +620,7 @@ class QRS(object):
         If the replaced app is not published, the entire app is replaced.
         '''
         param ={'app' :pAppId}
-        return self.driver.put('/app/{id}/replace'.format(id=pId), param)
+        return self.driver.put('/qrs/app/{id}/replace'.format(id=pId), param)
     
     
     def AppDelete(self, pId):
@@ -626,7 +628,7 @@ class QRS(object):
         @Function: delete App referenced 
         @param pId: App GUID 
         '''
-        return self.driver.delete('/app/{id}'.format(id=pId))
+        return self.driver.delete('/qrs/app/{id}'.format(id=pId))
     
     
     #=========================================================================================
@@ -648,7 +650,7 @@ class QRS(object):
         if pUUID is not None:
             param['id']=pUUID
                  
-        return self.driver.post('/stream', data=param).json()
+        return self.driver.post('/qrs/stream', data=param).json()
     
     
     
@@ -659,7 +661,7 @@ class QRS(object):
         @param pFilter: filter the entities before calculating the number of entities. 
         @return : json response
         '''
-        return self.driver.get('/stream/{id}'.format(id=pId), param={'filter':pFilter}).json()
+        return self.driver.get('/qrs/stream/{id}'.format(id=pId), param={'filter':pFilter}).json()
     
     
     
@@ -668,7 +670,7 @@ class QRS(object):
         @Function: update Stream info referenced 
         @param pId: Stream GUID 
         '''
-        return self.driver.put('/stream/{id}'.format(id=pId), data=pData)
+        return self.driver.put('/qrs/stream/{id}'.format(id=pId), data=pData)
     
     
     
@@ -678,7 +680,7 @@ class QRS(object):
         @param pId: Stream GUID 
         @return : json response
         '''
-        return self.driver.delete('/stream/{id}'.format(id=pId))
+        return self.driver.delete('/qrs/stream/{id}'.format(id=pId))
     
     
     
@@ -689,7 +691,7 @@ class QRS(object):
            @param attr: the attribute value to retrieve (single value or list)
            @return: dict(key:attr)
         '''
-        apipath='/stream/{uid}'.format(uid=pStreamID)            
+        apipath='/qrs/stream/{uid}'.format(uid=pStreamID)            
         return self._toDict(self.driver.get(apipath), pStreamID, key, attr) 
     
     
@@ -703,7 +705,7 @@ class QRS(object):
         @param pFilter: filter the entities before calculating the number of entities. 
         @return : json response
         '''
-        return self.driver.get('/user/{id}'.format(id=pUserID), param={'filter':pFilter}).json()
+        return self.driver.get('/qrs/user/{id}'.format(id=pUserID), param={'filter':pFilter}).json()
     
     
     def UserUpdate(self, pUserID, pData):
@@ -713,7 +715,7 @@ class QRS(object):
         @param pData: json with user information. 
         @return : json response
         '''
-        return self.driver.put('/user/{id}'.format(id=pUserID), data=pData)
+        return self.driver.put('/qrs/user/{id}'.format(id=pUserID), data=pData)
     
     
     def UserDelete(self, pUserID):
@@ -723,7 +725,7 @@ class QRS(object):
         @param pFilter: filter the entities before calculating the number of entities. 
         @return : json response
         '''
-        return self.driver.delete('/user/{id}'.format(id=pUserID))
+        return self.driver.delete('/qrs/user/{id}'.format(id=pUserID))
     
     
     def UserDictAttributes(self, pUserID='full', key='name', attr='id'):
@@ -733,7 +735,7 @@ class QRS(object):
            @param attr: the attribute value to retrieve (single value or list)
            @return: dict(key:attr)
         '''
-        apipath='/user/{uid}'.format(uid=pUserID)            
+        apipath='/qrs/user/{uid}'.format(uid=pUserID)            
         return self._toDict(self.driver.get(apipath),pUserID,key,attr)
     
     
@@ -745,7 +747,7 @@ class QRS(object):
         '''
         @Function: Get the system rules
         '''
-        return self.driver.get('/systemrule/full', {'filter':pFilter}).json()
+        return self.driver.get('/qrs/systemrule/full', {'filter':pFilter}).json()
    
    
     
@@ -756,7 +758,7 @@ class QRS(object):
            @param attr: the attribute value to retrieve (single value or list)
            @return: dict(key:attr)
         '''
-        apipath='/systemrule/{uid}'.format(uid=pRuleID)            
+        apipath='/qrs/systemrule/{uid}'.format(uid=pRuleID)            
         return self._toDict(self.driver.get(apipath),pRuleID,key,attr)
     
     
@@ -768,7 +770,7 @@ class QRS(object):
         '''
         @Function: Get the system rules
         '''
-        return self.driver.get('/custompropertydefinition/full', {'filter':pFilter}).json()
+        return self.driver.get('/qrs/custompropertydefinition/full', {'filter':pFilter}).json()
         #TODO: Complete Properties methods
 
 
@@ -790,7 +792,7 @@ if __name__ == "__main__":
     
     parser = ArgumentParser(description='qsAPI for QlikSense')
     parser.add_argument('-s', dest='server', required=True)
-    #parser.add_argument('-c', dest='certificate', required=True)
+    #TODO: NTLM auth
     parser.add_argument('-c', dest='certificate', required=False)
     parser.add_argument('-p', dest='vproxy', required=False)
     parser.add_argument("-Q", dest="api", choices=['QPS','QRS'], default='QRS', required=True, help="service API")
