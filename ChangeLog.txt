@@ -1,4 +1,12 @@
-Change Log, updated 06/03/2018
+Change Log, updated 23/03/2018
+
+v1.9 NTLM & vproxy improvements
+•	NTLM user credentials in command line too
+•	default ports according to authentication method
+•	schema accepted in proxy string (http://proxy:port)
+•	argument -p proxy renamed to -P
+•	command line help completed
+
 
 v1.8 Improvements
 •	virtual proxy ensured to work even in complex proxies with multiple redirections

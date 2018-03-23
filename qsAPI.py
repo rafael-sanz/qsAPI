@@ -27,8 +27,8 @@ import urllib.parse as up
 import random, string, json, uuid, re
 import logging
 
-__version__ = "1.8"
-__updated__ = '22/03/2018'
+__version__ = "1.9"
+__updated__ = '23/03/2018'
 
 
 
@@ -42,9 +42,10 @@ class _Controller(object):
     except ImportError:
         _ntlm=None  
     
-    def __init__(self, proxy, port, vproxy, certificate, verify, user, verbosity, logName):
+    def __init__(self, schema, proxy, port, vproxy, certificate, verify, user, verbosity, logName):
         ''' 
             @Function setup: Setup the connection and initialize handlers
+            @param schema: http/https
             @param proxy: hostname to connect
             @param port: port number
             @param vproxy: virtual proxy conf. {preffix:'proxy', path: '^/qrs/', template:'/{}/qrs/'})
@@ -66,10 +67,7 @@ class _Controller(object):
         if vproxy:
             self.setVProxy(**vproxy)
         
-        if isinstance(user, dict):
-            self.setUser(user.get('userDirectory'), user.get('userID'), user.get('password'))
-        else:
-            self.setUser(*user)
+        self.setUser(**user) if isinstance(user, dict) else self.setUser(*user)
           
         self.chunk_size = 512 #Kb
         
@@ -78,8 +76,7 @@ class _Controller(object):
             self.log.addHandler(logging.StreamHandler(sys.stdout))
         self.log.setLevel(verbosity)
         
-        #TODO: mover schema a configurable
-        self.baseurl= 'https://{host}:{port}'.format(host=proxy, port=str(port))
+        self.baseurl= '{schema}://{host}:{port}'.format(schema=schema, host=proxy, port=str(port))
         
         if isinstance(certificate, str):
             (base,ext)=os.path.splitext(certificate)
@@ -116,6 +113,19 @@ class _Controller(object):
         self.UserId = userID
         self.Password=password
             
+    
+    @staticmethod
+    def normalize(schema, proxy, port, certificate):
+        
+        if '://' in proxy:
+            schema, proxy = proxy.split('://')
+        if not certificate and isinstance(port, int):
+            port=443
+        if ':' in proxy:
+            proxy, port = proxy.split(':')
+        
+        return(schema, proxy, port)
+    
         
     def _params_prepare(self, param, xhd={}):
                 
@@ -328,16 +338,14 @@ class QPS(object):
     
     VERSION_API= Version(__version__)
     
-    def __init__(self, proxy='localhost', port=4243, vproxy=None, certificate=None, verify=False, \
+    def __init__(self, schema='https', proxy='localhost', port=4243, vproxy=None, certificate=None, verify=False, \
                  user={'userDirectory':'internal', 'userID':'sa_repository', 'password': None}, \
                  verbosity='INFO', logger='qsapi'):  
         
-        if ':' in proxy:
-            (proxy, port) = proxy.split(':')
-        
+        schema, proxy, port=_Controller.normalize(schema, proxy, port, certificate) 
         p_vproxy={'preffix': vproxy, 'path': '^/qps/', 'template':'/{}/qps/'} if vproxy else None
         
-        self.driver=_Controller(proxy, port, p_vproxy, certificate, verify, user, verbosity, logger)
+        self.driver=_Controller(schema, proxy, port, p_vproxy, certificate, verify, user, verbosity, logger)
 
         
 
@@ -384,16 +392,14 @@ class QRS(object):
     VERSION_API= Version(__version__)
     
     
-    def __init__(self, proxy='localhost', port=4242, vproxy=None, certificate=None, verify=False, \
+    def __init__(self, schema='https', proxy='localhost', port=4242, vproxy=None, certificate=None, verify=False, \
                  user={'userDirectory':'internal', 'userID':'sa_repository', 'password': None}, \
                  verbosity='INFO', logger='qsapi'):
         
-        if ':' in proxy:
-            (proxy, port) = proxy.split(':')
-            
+        schema, proxy, port=_Controller.normalize(schema, proxy, port, certificate)
         p_vproxy={'preffix': vproxy, 'path': '^/qrs/', 'template':'/{}/qrs/'} if vproxy else None
             
-        self.driver=_Controller(proxy, port, p_vproxy, certificate, verify, user, verbosity, logger)
+        self.driver=_Controller(schema, proxy, port, p_vproxy, certificate, verify, user, verbosity, logger)
         
         self.VERSION_SERVER=self.getServerVersion()
         if self.VERSION_API > self.VERSION_SERVER:
@@ -771,7 +777,6 @@ class QRS(object):
         @Function: Get the system rules
         '''
         return self.driver.get('/qrs/custompropertydefinition/full', {'filter':pFilter}).json()
-        #TODO: Complete Properties methods
 
 
     #=========================================================================================
@@ -791,20 +796,27 @@ if __name__ == "__main__":
     from pprint import pprint
     
     parser = ArgumentParser(description='qsAPI for QlikSense')
-    parser.add_argument('-s', dest='server', required=True)
-    #TODO: NTLM auth
-    parser.add_argument('-c', dest='certificate', required=False)
-    parser.add_argument('-p', dest='vproxy', required=False)
+    parser.add_argument('-s', dest='server', required=True, help='server hostname | hostname:port | https://hostname:port')
+    parser.add_argument('-u', dest='user', required=False, default='internal\\sa_repository', help='user in domain\\userid format.')
+    parser.add_argument('-p', dest='password', required=False, default=None, help='password credential (NTLM)')
+    parser.add_argument('-c', dest='certificate', required=False, help='path to client.pem certificate.')
+    parser.add_argument('-P', dest='vproxy', required=False, help='virtual proxy preffix if needed.')
     parser.add_argument("-Q", dest="api", choices=['QPS','QRS'], default='QRS', required=True, help="service API")
-    parser.add_argument(dest='method', nargs='+', help='API method to call')
     parser.add_argument("-v", dest="verbose", choices=['DEBUG','INFO','WARNING','ERROR','CRITICAL'], default='INFO', help="set verbosity level")
     parser.add_argument('--version', action='version', version='tools {}'.format(__version__))
+    parser.add_argument(dest='method', nargs='+', help='API method to call and arguments')
     
     # Process arguments
     args = parser.parse_args()
     Q=QPS if args.api == 'QPS' else QRS
 
-    qr=Q(proxy=args.server, vproxy=args.vproxy, certificate=args.certificate, verbosity=args.verbose)
+    if not (bool(args.password) != bool(args.certificate)):
+        print('ERROR: One and only one authentication method must be provided (password or certificate)')
+        sys.exit(-1)
+        
+    user=args.user.replace('\\\\','\\').split('\\')
+    user.append(args.password)
+    qr=Q(proxy=args.server, vproxy=args.vproxy, certificate=args.certificate, user=user, verbosity=args.verbose)
     m=[x for x,y in inspect.getmembers(Q) if not x.startswith('_') ]
     
     cmd=args.method[0]
