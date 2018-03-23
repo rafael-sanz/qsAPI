@@ -95,7 +95,7 @@ class _Controller(object):
         
         self.session=req.Session()
         
-        if self._ntlm:
+        if self._ntlm and not self.cafile:
             self.log.debug('NTLM authentication enabled')
             self.session.auth = self._ntlm('{domain}\\{user}'.format(domain=self.UserDirectory, user=self.UserId), self.Password)
         
