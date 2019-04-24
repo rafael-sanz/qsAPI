@@ -5,9 +5,9 @@ from qsAPI import QRS, QPS, __version__
 def main():
     '''
     Alternative command line invocation, examples:
-        python qsAPI.py -s myServer -c dir/client.pem -Q QRS AppDictAttributes
-        python qsAPI.py -s myServer -c dir/client.pem -Q QRS -v INFO AppExport d8b120d7-a6e4-42ff-90b2-2ac6a3d92233 
-        python qsAPI.py -s myServer -c dir/client.pem -Q QRS -v INFO AppReload d8b120d7-a6e4-42ff-90b2-2ac6a3d92233
+        qsAPI -s myServer -c dir/client.pem -Q QRS AppDictAttributes
+        qsAPI -s myServer -c dir/client.pem -Q QRS -v INFO AppExport d8b120d7-a6e4-42ff-90b2-2ac6a3d92233 
+        python -m qsAPI -s myServer -c dir/client.pem -Q QRS -v INFO AppReload d8b120d7-a6e4-42ff-90b2-2ac6a3d92233
 
     '''
     from argparse import ArgumentParser
