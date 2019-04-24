@@ -27,6 +27,8 @@ import urllib.parse as up
 import random, string, json, uuid, re
 import logging
 
+from qsAPI import __version__
+
 
 class _Controller(object):
     """ Handler REST-API QRS"""
