@@ -746,8 +746,69 @@ class QRS(object):
     
     
     #=========================================================================================
-    
 
+    def TaskGet(self, pFilter=None):
+        '''
+        @Function: retrieve Task information
+        @param pFilter: filter the entities
+        @return : json response
+        '''
+        return self.driver.get('/qrs/task/full', param={'filter': pFilter}).json()
+
+    def TaskStart(self, taskid):
+        '''
+        @Function: Starts a task by id and waits until a slave starts to execute a task
+        @param taskid: taskid of the task to start
+        '''
+        return self.driver.post('/qrs/task/{taskid}/start'.format(taskid=taskid))
+
+    def TaskStartSynchronous(self, taskid):
+        '''
+        @Function: Starts a task by id and waits until a slave starts to execute a task
+        @param taskid: taskid of the task to start
+        '''
+        return self.driver.post('/qrs/task/{taskid}/start/synchronous'.format(taskid=taskid))
+
+
+    def TaskStartByName(self, taskname):
+        '''
+        @Function: Starts a task by name
+        @param taskname: Name of the task to start
+        '''
+        return self.driver.post('/qrs/task/start', param={'name': taskname})
+
+    def TaskStartMany(self, taskids):
+        '''
+        @Function: Starts multiple tasks
+        @param taskids: list of id's of the task to start
+            Sample list: ["6ca1c5f2-2742-44d5-8adf-d6cba3701a4e","965ca0cf-952f-4502-a65e-2a82e3de4803"]
+        '''
+        return self.driver.post('/qrs/task/start/many', data=taskids)
+
+    def TaskStartByNameSynchronous(self, taskname):
+        '''
+        @Function: Starts a task and waits until a slave starts to execute a task
+        @param taskname: Name of the task to start
+        '''
+        return self.driver.post('/qrs/task/start/synchronous', param={'name': taskname})
+
+    def TaskStop(self, taskid):
+        '''
+        @Function: Stops a task
+        @param taskid: id of the task to stop
+        '''
+        return self.driver.post('/qrs/task/{taskid}/stop'.format(taskid=taskid))
+
+    def TaskStopMany(self, taskids):
+        '''
+        @Function: Stops multiple tasks
+        @param taskname: list of id's of the task to stop
+            Sample list: ["6ca1c5f2-2742-44d5-8adf-d6cba3701a4e","965ca0cf-952f-4502-a65e-2a82e3de4803"]
+        '''
+        return self.driver.post('/qrs/task/stop/many', data=taskids)
+
+    #=========================================================================================
+        
    
     def SystemRules(self, pFilter=None):
         '''
