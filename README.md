@@ -2,16 +2,19 @@
 qsAPI is a client for Qlik Sense QPS and QRS interfaces written in python that provides an environment for managing a Qlik Sense site via programming or interactive console. The module provides a set of commands for viewing and editing configuration settings, as well as managing tasks and other features available through APIs.
 
 ## Installation
+
 You could use your preferred IDE (Eclipse, Visual Studio, NetBeans, etc.) with the python interpreter 3.x or directly in console. Take a look at (https://www.python.org). Once the module is loaded you can view a list of available commands with the autocomplete tooltips.
 
-The python `requests` library is a requisite (http://docs.python-requests.org/en/master/user/install/). Just execute in the command line:
+The python `requests` library is a requisite (http://docs.python-requests.org/en/master/user/install/). 
+Just execute in the command line:
+
 ```python
-pip install requests
+pip install .
 ```
 
 Optionally, if you plan connect using NTLM authentication, then the library `requests_ntlm` too. 
 ```python
-pip install requests_ntlm 
+pip install .[ntlm]
 ```
 
 Now, the module can be used just importing qsAPI.py at the beginning of your python script or console, the module will then be loaded and ready to use.
@@ -82,10 +85,10 @@ Take a look at the Wiki area: (https://github.com/rafael-sanz/qsAPI/wiki)
 ## Command Line
 Alternative command line is available too, examples:
 ```
-python qsAPI.py --help
-python qsAPI.py -s myServer -c dir/client.pem -Q QRS StreamDictAttributes
-python qsAPI.py -s myServer -c dir/client.pem -Q QRS -v INFO AppExport d8b120d7-a6e4-42ff-90b2-2ac6a3d92233 
-python qsAPI.py -s myServer -c dir/client.pem -Q QRS -v INFO AppReload d8b120d7-a6e4-42ff-90b2-2ac6a3d92233
+qsAPI --help
+qsAPI -s myServer -c dir/client.pem -Q QRS StreamDictAttributes
+qsAPI -s myServer -c dir/client.pem -Q QRS -v INFO AppExport d8b120d7-a6e4-42ff-90b2-2ac6a3d92233
+qsAPI -s myServer -c dir/client.pem -Q QRS -v INFO AppReload d8b120d7-a6e4-42ff-90b2-2ac6a3d92233
 ```
 
 ## TODO
