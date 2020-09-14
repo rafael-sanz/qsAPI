@@ -22,11 +22,11 @@ Now, the module can be used just importing qsAPI.py at the beginning of your pyt
 >>> import qsAPI
 ```
 
-![IDE screenshot](https://raw.githubusercontent.com/rafael-sanz/qsAPI/master/qsAPI.png)
+![IDE screenshot](https://raw.githubusercontent.com/rafael-sanz/qsAPI/master/screenshots/qsAPI.png)
 
 
 Or just a simple command line console if complex scripts are no needed: 
-![console screenshot](https://raw.githubusercontent.com/rafael-sanz/qsAPI/master/qsAPI_console.png)
+![console screenshot](https://raw.githubusercontent.com/rafael-sanz/qsAPI/master/screenshots/qsAPI_console.png)
 
 
 ## Usage
