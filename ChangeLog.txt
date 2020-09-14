@@ -1,4 +1,8 @@
-Change Log, updated 23/03/2018
+Change Log, updated 16/09/2020
+
+v2.0 Restructured as package
+•	thanks to xmatthias for this work
+•	Splitted the code into files according to package requirements
 
 v1.9 NTLM & vproxy improvements
 •	NTLM user credentials in command line too
