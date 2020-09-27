@@ -528,7 +528,7 @@ class QRS(object):
 
 
     
-    def AppExport(self, pId, filename=None):
+    def AppExport(self, pId, filename=None)kipdata='true'
         '''
         @Function: Get an export qvf for an existing app, identified by {id}.
         @param pId: app GUI
@@ -545,7 +545,7 @@ class QRS(object):
             return(r)
         
         #Current API method
-        r=self.driver.post('/qrs/app/{id}/export/{token}'.format(id=pId, token=uuid.uuid4()))
+        r=self.driver.post('/qrs/app/{id}/export/{token}?skipData={skipdata}'.format(id=pId, token=uuid.uuid4(), skipdata=skipdata))
         if r.ok:
             r=self.driver.download(r.json()['downloadPath'], file)
         return(r)
