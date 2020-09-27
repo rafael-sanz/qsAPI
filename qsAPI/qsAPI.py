@@ -528,7 +528,7 @@ class QRS(object):
 
 
     
-    def AppExport(self, pId, filename=None)kipdata='true'
+    def AppExport(self, pId, filename=None,skipdata='true')
         '''
         @Function: Get an export qvf for an existing app, identified by {id}.
         @param pId: app GUI
