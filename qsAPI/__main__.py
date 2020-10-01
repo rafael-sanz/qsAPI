@@ -14,7 +14,7 @@ def main():
     import inspect
     from pprint import pprint
 
-    parser = ArgumentParser(description='qsAPI for QlikSense')
+    parser = ArgumentParser(description='qsAPI for QlikSense, Rafael Sanz (SELAB)')
     parser.add_argument('-s', dest='server', required=True,
                         help='server hostname | hostname:port | https://hostname:port')
     parser.add_argument('-u', dest='user', required=False,
@@ -30,7 +30,7 @@ def main():
     parser.add_argument("-v", dest="verbose", choices=[
                         'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'], default='INFO', help="set verbosity level")
     parser.add_argument('--version', action='version',
-                        version='tools {}'.format(__version__))
+                        version='qsAPI {}'.format(__version__))
     parser.add_argument(dest='method', nargs='+',
                         help='API method to call and arguments')
 

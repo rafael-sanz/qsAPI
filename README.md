@@ -15,7 +15,7 @@ pip install qsAPI
 Optionally, if you plan connect using NTLM authentication, then the library `requests_ntlm` too.
  
 ```python
-pip install qsAPI request_ntlm
+pip install qsAPI[ntlm]
 ```
 
 Now, the module can be used just importing qsAPI.py at the beginning of your python script or console, the module will then be loaded and ready to use.
