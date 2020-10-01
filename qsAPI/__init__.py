@@ -1,4 +1,4 @@
-__version__ = "2.0"
+__version__ = "2.0.1"
 __updated__ = '16/09/2020'
 
 try:
