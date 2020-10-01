@@ -84,16 +84,18 @@ Take a look at the Wiki area: (https://github.com/rafael-sanz/qsAPI/wiki)
 
 
 ## Command Line
-Alternative command line is available too, examples:
+Alternative use as command line is available too, examples:
+
 ```
 qsAPI --help
 qsAPI -s myServer -c dir/client.pem -Q QRS StreamDictAttributes
 qsAPI -s myServer -c dir/client.pem -Q QRS -v INFO AppExport d8b120d7-a6e4-42ff-90b2-2ac6a3d92233
-qsAPI -s myServer -c dir/client.pem -Q QRS -v INFO AppReload d8b120d7-a6e4-42ff-90b2-2ac6a3d92233
+qsAPI -s myServer -c dir/client.pem -Q QRS -v INFO AppReload 79f0c591-67de-4ded-91ae-4865934a5746
 ```
 
 ## TODO
 The module is in progress, a subset of methods are implemented. But all the endpoints could be handled through the inner class `driver` and the methods `get, post, put, delete`.
+
 ```python
 qps.driver.get('/qrs/about/api/enums')
 ```
