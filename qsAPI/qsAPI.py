@@ -27,7 +27,9 @@ import urllib.parse as up
 import random, string, json, uuid, re
 import logging
 
-from qsAPI import __version__
+# Qlik sense 3.0, initial release 28/6/2016.
+# after June 2017, jump to 11.11.1
+_minServerAPIversion = '3.0.0'
 
 
 class _Controller(object):
@@ -334,7 +336,7 @@ class _Controller(object):
 class QPS(object):
     '''Qlik Sense Proxy Service REST API'''
     
-    VERSION_API= Version(__version__)
+    VERSION_API= Version(_minServerAPIversion)
     
     def __init__(self, schema='https', proxy='localhost', port=4243, vproxy=None, certificate=None, verify=False, \
                  user={'userDirectory':'internal', 'userID':'sa_repository', 'password': None}, \
@@ -387,7 +389,7 @@ class QPS(object):
 class QRS(object):
     '''Qlik Sense Repository Service REST API'''
     
-    VERSION_API= Version(__version__)
+    VERSION_API= Version(_minServerAPIversion)
     
     
     def __init__(self, schema='https', proxy='localhost', port=4242, vproxy=None, certificate=None, verify=False, \

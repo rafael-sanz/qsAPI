@@ -1,7 +1,6 @@
-__version__ = "2.0.1"
+__version__ = "2.1.0"
 __updated__ = '16/09/2020'
+__all__ = ['QPS','QRS']
 
-try:
-    from qsAPI.qsAPI import QRS, QPS
-except ModuleNotFoundError:
-    pass
+from qsAPI._qsAPI import QPS, QRS
+

@@ -4,15 +4,14 @@ qsAPI is a client for Qlik Sense QPS and QRS interfaces written in python that p
 ## Installation
 
 You could use your preferred IDE (Eclipse, Visual Code, NetBeans, etc.) with the python interpreter 3.x or directly in console. Take a look at (https://www.python.org). Once the module is loaded you can view a list of available commands with the autocomplete tooltips.
-
-The python `requests` library is a requisite (http://docs.python-requests.org/en/master/user/install/). 
-Just execute in the command line:
+ 
+Just execute in the command line (`requests` library and dependencies will be installed):
 
 ```python
 pip install qsAPI
 ```
 
-Optionally, if you plan connect using NTLM authentication, then the library `requests_ntlm` too.
+Optionally, if you plan connect using NTLM authentication, then append optional target.
  
 ```python
 pip install qsAPI[ntlm]
