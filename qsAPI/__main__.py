@@ -1,4 +1,4 @@
-import sys
+# -*- coding: UTF-8 -*-
 from qsAPI import QRS, QPS, __version__
 
 
@@ -11,10 +11,10 @@ def main():
 
     '''
     from argparse import ArgumentParser
-    import inspect
+    import sys, inspect
     from pprint import pprint
 
-    parser = ArgumentParser(description='qsAPI for QlikSense, Rafael Sanz (SELAB)')
+    parser = ArgumentParser(description='qsAPI {} for QlikSense, Rafael Sanz (SELAB)'.format(__version__))
     parser.add_argument('-s', dest='server', required=True,
                         help='server hostname | hostname:port | https://hostname:port')
     parser.add_argument('-u', dest='user', required=False,
