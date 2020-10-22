@@ -1,7 +1,18 @@
-Change Log, updated 16/09/2020
+Change Log, updated 22/10/2020
+v2.2 Added new functions and bug fixed
+•	Functions for System Security Rules
+•	Functions for Objects
+•	Functions for License
+•	Functions for tags
+•	Added pFilter param in generic Attributes
+•	Normalized puid as uuid parameter
+
+v2.1 Refactored package
+•	Splitted modules for controller and interfaces
+•	Unlinked package version from API version
 
 v2.0 Restructured as package
-•	thanks to xmatthias for this work
+•	Thanks to @xmatthias for this work
 •	Splitted the code into files according to package requirements
 
 v1.9 NTLM & vproxy improvements

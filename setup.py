@@ -1,11 +1,6 @@
 """
-Build qsAPI
+Build qsAPI package
 
-```
-rm dist/*
-./setup.py build sdist
-use qsAPI-<version>.tar.gz to install on server
-```
 """
 import setuptools
 
@@ -15,7 +10,6 @@ from qsAPI import __version__
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
-# long_description = "qsAPI is a client for Qlik Sense QPS and QRS interfaces"
 
 setuptools.setup(
     name="qsAPI",

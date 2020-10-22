@@ -20,10 +20,10 @@ This software is MIT licensed (see terms below)
     IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 '''
 
-__version__ = "2.1.0"
-__updated__ = '16/10/2020'
+__version__ = "2.2.0"
+__updated__ = '22/10/2020'
 
 
 from ._interfaces import QPS, QRS
 
-__all__ = ('QPS','QRS')
+__all__ = ['QPS','QRS']

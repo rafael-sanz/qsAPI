@@ -5,9 +5,9 @@ from qsAPI import QRS, QPS, __version__
 def main():
     '''
     Alternative command line invocation, examples:
-        qsAPI -s myServer -c dir/client.pem -Q QRS AppDictAttributes
-        qsAPI -s myServer -c dir/client.pem -Q QRS -v INFO AppExport d8b120d7-a6e4-42ff-90b2-2ac6a3d92233 
-        python -m qsAPI -s myServer -c dir/client.pem -Q QRS -v INFO AppReload d8b120d7-a6e4-42ff-90b2-2ac6a3d92233
+        qsAPI -s myServer -c dir/client.pem -Q QRS TaskStartbyName "Reload License Monitor"
+        qsAPI -s myServer -c dir/client.pem -Q QRS -v ERROR AppExport d8b120d7-a6e4-42ff-90b2-2ac6a3d92233 
+        python -m qsAPI -s myServer -c dir/client.pem -Q QRS -v WARNING AppReload d8b120d7-a6e4-42ff-90b2-2ac6a3d92233
 
     '''
     from argparse import ArgumentParser
@@ -25,8 +25,7 @@ def main():
                         help='path to client.pem certificate.')
     parser.add_argument('-P', dest='vproxy', required=False,
                         help='virtual proxy preffix if needed.')
-    parser.add_argument(
-        "-Q", dest="api", choices=['QPS', 'QRS'], default='QRS', required=True, help="service API")
+    parser.add_argument("-Q", dest="api", choices=['QPS', 'QRS'], default='QRS', help="service API")
     parser.add_argument("-v", dest="verbose", choices=[
                         'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'], default='INFO', help="set verbosity level")
     parser.add_argument('--version', action='version',

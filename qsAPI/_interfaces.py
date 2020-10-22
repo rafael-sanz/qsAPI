@@ -188,17 +188,16 @@ class QRS(object):
 
     
     
-    def AppDictAttributes(self, guid='full', key='name', attr='id'):
+    def AppDictAttributes(self, puid='full', pFilter=None, key='name', attr='id'):
         '''@Function: retrieve a mapping of apps attributes
-           @param pId: limmit the scope to the App {GUID}
+           @param pId: limmit the scope to the App {UUID}
+           @param pFilter: filter the entities before calculating the number of entities.
            @param key: the attribute to be the key
            @param attr: the attribute value to retrieve (single value or list)
            @return: dict(key:attr)
         '''
-        
-        apipath='/qrs/app/{guid}'.format(guid=guid)
-        
-        return self._toDict(self.driver.get(apipath), guid, key, attr)    
+        apipath='/qrs/app/{puid}'.format(puid=puid)
+        return self._toDict(self.driver.get(apipath, param={'filter':pFilter}), puid, key, attr)    
         
     
 
@@ -218,6 +217,7 @@ class QRS(object):
         @Function: Get an export qvf for an existing app, identified by {id}.
         @param pId: app GUI
         @param filename: target path filename
+        @param skipData: if True App will be emptied of data
         @return : stored application
         '''
         file= filename if filename else pId+'.qvf'
@@ -253,7 +253,7 @@ class QRS(object):
     def AppGet(self, pId='full', pFilter=None):
         '''
         @Function: retrieve App information
-        @param pId: App GUID 
+        @param pId: App UUID 
         @param pFilter: filter the entities before calculating the number of entities. 
         @return : json response
         '''
@@ -294,7 +294,7 @@ class QRS(object):
     def AppUpdate(self, pId, pData):
         '''
         @Function: update App info referenced 
-        @param pId: App GUID 
+        @param pId: App UUID 
         '''
         return self.driver.put('/qrs/app/{id}'.format(id=pId), data=pData)
     
@@ -302,8 +302,8 @@ class QRS(object):
     def AppReplace(self, pId, pAppId):
         '''
         @Function: Replace an app, identified by {appid}, with the app identified by {id}. 
-        @param pId: App GUID 
-        @param pAppId: target App GUID
+        @param pId: source App UUID 
+        @param pAppId: target App UUID
 
         If the replaced app is published, only the sheets that were originally published with the app are replaced.
         If the replaced app is not published, the entire app is replaced.
@@ -315,11 +315,68 @@ class QRS(object):
     def AppDelete(self, pId):
         '''
         @Function: delete App referenced 
-        @param pId: App GUID 
+        @param pId: App UUID 
         '''
         return self.driver.delete('/qrs/app/{id}'.format(id=pId))
     
     
+    #=========================================================================================
+    
+    
+    def AppObjectGet(self, pId='full', pFilter=None):
+        '''
+        @Function: retrieve AppObject information
+        @param pId: AppObject UUID 
+        @param pFilter: filter the entities before calculating the number of entities. 
+        @return : json response
+        '''
+        return self.driver.get('/qrs/app/object/{id}'.format(id=pId), param={'filter':pFilter}).json()
+    
+    
+    def AppObjectCount(self, pFilter=None):
+        '''
+        @Function: retrieve AppObject count information
+        @param pFilter: filter the entities before calculating the number of entities. 
+        @return : json response
+        '''
+        return self.driver.get('/qrs/app/object/count', param={'filter':pFilter}).json()
+    
+    
+    def AppObjectUpdate(self, pId, pData):
+        '''
+        @Function: retrieve AppObject information
+        @param pId: AppObject UUID  
+        @param pData: AppObject attributes
+        '''
+        return self.driver.put('/qrs/app/object/{id}'.format(id=pId), data=pData)
+    
+    
+    def AppObjectApprove(self, pId, pApprove=True):
+        '''
+        @Function: Set AppObject approve status
+        @param pId: AppObject UUID  
+        @param pApprove: True / False
+        '''
+        return self.driver.post('/qrs/app/object/{id}/{status}'.format(id=pId, status='approve' if pApprove else 'unapprove'))
+    
+    
+    def AppObjectPublish(self, pId, pPublish=True):
+        '''
+        @Function: Set AppObject publish status
+        @param pId: AppObject UUID  
+        @param pPublish: True / False
+        '''
+        return self.driver.put('/qrs/app/object/{id}/{status}'.format(id=pId, status='publish' if pPublish else 'unpublish'))
+    
+    
+    def AppObjectDelete(self, pId):
+        '''
+        @Function: Delete AppObject
+        @param pId: AppObject UUID  
+        '''
+        return self.driver.delete('/qrs/app/object/{id}'.format(id=pId))
+    
+        
     #=========================================================================================
     
     
@@ -346,7 +403,7 @@ class QRS(object):
     def StreamGet(self, pId='full', pFilter=None):
         '''
         @Function: retrieve Stream information
-        @param pId: Stream GUID 
+        @param pId: Stream UUID 
         @param pFilter: filter the entities before calculating the number of entities. 
         @return : json response
         '''
@@ -357,7 +414,8 @@ class QRS(object):
     def StreamUpdate(self, pId, pData):
         '''
         @Function: update Stream info referenced 
-        @param pId: Stream GUID 
+        @param pId: Stream UUID 
+        @param pData: stream attributes
         '''
         return self.driver.put('/qrs/stream/{id}'.format(id=pId), data=pData)
     
@@ -366,22 +424,23 @@ class QRS(object):
     def StreamDelete(self, pId):
         '''
         @Function: delete Stream referenced 
-        @param pId: Stream GUID 
+        @param pId: Stream UUID 
         @return : json response
         '''
         return self.driver.delete('/qrs/stream/{id}'.format(id=pId))
     
     
     
-    def StreamDictAttributes(self, pStreamID='full', key='name', attr='id'):
+    def StreamDictAttributes(self, pStreamID='full', pFilter=None, key='name', attr='id'):
         '''@Function: retrieve a mapping of Stream attributes
            @param pStreamID: limmit the scope to the Stream {UID}
+		   @param pFilter: filter the entities before calculating the number of entities.
            @param key: the attribute to be the key
            @param attr: the attribute value to retrieve (single value or list)
            @return: dict(key:attr)
         '''
         apipath='/qrs/stream/{uid}'.format(uid=pStreamID)            
-        return self._toDict(self.driver.get(apipath), pStreamID, key, attr) 
+        return self._toDict(self.driver.get(apipath, param={'filter':pFilter}), pStreamID, key, attr) 
     
     
     #=========================================================================================     
@@ -417,15 +476,16 @@ class QRS(object):
         return self.driver.delete('/qrs/user/{id}'.format(id=pUserID))
     
     
-    def UserDictAttributes(self, pUserID='full', key='name', attr='id'):
+    def UserDictAttributes(self, pUserID='full', pFilter=None, key='name', attr='id'):
         '''@Function: retrieve a mapping of user attributes
            @param pUserID: limmit the scope to the User {UID}
+		   @param pFilter: filter the entities before calculating the number of entities.
            @param key: the attribute to be the key
            @param attr: the attribute value to retrieve (single value or list)
            @return: dict(key:attr)
         '''
         apipath='/qrs/user/{uid}'.format(uid=pUserID)            
-        return self._toDict(self.driver.get(apipath),pUserID,key,attr)
+        return self._toDict(self.driver.get(apipath, param={'filter':pFilter}),pUserID,key,attr)
     
     
     #=========================================================================================
@@ -493,28 +553,50 @@ class QRS(object):
     #=========================================================================================
         
    
-    def SystemRules(self, pFilter=None):
+    def SystemRulesGet(self, pFilter=None):
         '''
         @Function: Get the system rules
         '''
         return self.driver.get('/qrs/systemrule/full', {'filter':pFilter}).json()
-   
-   
     
-    def SystemRulesDictAttributes(self, pRuleID='full', key='name', attr='id'):
+    
+    def SystemRulesCreate(self, param):
+        '''
+        @Function: create a SystemRule
+        @return : json response
+        ''' 
+        return self.driver.post('/qrs/systemrule', data=param).json()
+    
+    
+    def SystemRulesDictAttributes(self, pRuleID='full', pFilter=None, key='name', attr='id'):
         '''@Function: retrieve a mapping of rules attributes
            @param pRuleID: limmit the scope to the Rule {UID}
+		   @param pFilter: filter the entities before calculating the number of entities.
            @param key: the attribute to be the key
            @param attr: the attribute value to retrieve (single value or list)
            @return: dict(key:attr)
         '''
         apipath='/qrs/systemrule/{uid}'.format(uid=pRuleID)            
-        return self._toDict(self.driver.get(apipath),pRuleID,key,attr)
-    
+        return self._toDict(self.driver.get(apipath, param={'filter':pFilter}),pRuleID,key,attr)
     
     
     #=========================================================================================
     
+    
+    
+    def ReloadTaskGet(self, pId='full', pFilter=None):
+        '''
+        @Function: retrieve ReloadTask information
+        @param pId: ReloadTask UID 
+        @param pFilter: filter the entities before calculating the number of entities. 
+        @return : json response
+        '''
+        return self.driver.get('/qrs/reloadtask/{id}'.format(id=pId), param={'filter':pFilter}).json()
+    
+    
+    
+    #=========================================================================================
+     
     
     def PropertiesGet(self, pFilter=None):
         '''
@@ -526,3 +608,59 @@ class QRS(object):
     #=========================================================================================
     
     
+    def TagsDictAttributes(self, pTagID='full', pFilter=None, key='name', attr='id'):
+        '''@Function: retrieve a mapping of tags attributes
+           @param pRuleID: limmit the scope to the Tag {UID}
+		   @param pFilter: filter the entities before calculating the number of entities.
+           @param key: the attribute to be the key
+           @param attr: the attribute value to retrieve (single value or list)
+           @return: dict(key:attr)
+        '''
+        apipath='/qrs/tag/{uid}'.format(uid=pTagID)            
+        return self._toDict(self.driver.get(apipath, param={'filter':pFilter}),pTagID,key,attr)
+
+    
+    #=========================================================================================
+    
+    
+    class LicenseType:
+        UserAccess='useraccesstype'
+        LoginAccess='loginaccesstype'
+        ProfessionalAccess='professionalaccesstype'
+        AnalyzerAccess='analyzeraccesstype'
+    
+    
+    def LicenseUsageSummary(self):
+        '''
+        @Function: Get the license summary
+        '''
+        return self.driver.get('qrs/license/accesstypeinfo').json()
+    
+    
+    def LicenseAccessGet(self, licenseType):
+        '''
+        @Function: Get a user access licenses
+        @param licenseType: LicenseType***Access enumeration
+        '''
+        return self.driver.get('qrs/license/{}/full'.format(licenseType)).json()
+    
+    
+    def LicenseAccessDelete(self, licenseType, pLicID):
+        '''
+        @Function: Delete a user access license
+        @param licenseType: LicenseType***Access enumeration
+        @param pLicID: key of license
+        '''
+        return self.driver.delete('qrs/license/{}/{}'.format(licenseType, pLicID))
+    
+    
+    def LicenseAccessCount(self, licenseType):
+        '''
+        @Function: Retrieve the number of assigned access license
+        @param licenseType: LicenseType***Access enumeration
+        @param pLicID: key of licens
+        '''
+        return self.driver.get('/qrs/license/{}/count'.format(licenseType)).json()['value']
+
+
+        

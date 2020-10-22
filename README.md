@@ -5,7 +5,7 @@ qsAPI is a client for Qlik Sense QPS and QRS interfaces written in python that p
 
 You could use your preferred IDE (Eclipse, Visual Code, NetBeans, etc.) with the python interpreter 3.x or directly in console. Take a look at (https://www.python.org). Once the module is loaded you can view a list of available commands with the autocomplete tooltips.
  
-Just execute in the command line (`requests` library and dependencies will be installed):
+Just execute in the command line (libraries and dependencies will be installed):
 
 ```python
 pip install qsAPI
@@ -65,7 +65,7 @@ for app in qrs.AppGet(pFilter="stream.name ne 'None'"):
 
 #### Retrieve security rules using a filter
 ```python
-qrs.SystemRules("type eq 'Custom'")
+qrs.SystemRulesGet("type eq 'Custom'")
 ```
 
 #### Retrieve a list of sessions for a user
@@ -87,13 +87,13 @@ Alternative use as command line is available too, examples:
 
 ```
 qsAPI --help
-qsAPI -s myServer -c dir/client.pem -Q QRS StreamDictAttributes
+qsAPI -s myServer -c dir/client.pem -Q QRS TaskStartbyName "Reload License Monitor"
 qsAPI -s myServer -c dir/client.pem -Q QRS -v INFO AppExport d8b120d7-a6e4-42ff-90b2-2ac6a3d92233
 qsAPI -s myServer -c dir/client.pem -Q QRS -v INFO AppReload 79f0c591-67de-4ded-91ae-4865934a5746
 ```
 
 ## TODO
-The module is in progress, a subset of methods are implemented. But all the endpoints could be handled through the inner class `driver` and the methods `get, post, put, delete`.
+The module is in progress, a subset of methods are implemented. But all the endpoints could be implemented through the inner class `driver` and the methods `get, post, put, delete`.
 
 ```python
 qps.driver.get('/qrs/about/api/enums')
